@@ -75,11 +75,14 @@ def _get_choice_ques_data(item_data):
     try:
         extra_json_of_ques = json.loads(
             ques_extra_data.replace("\\\"",  "\""))
-        stu_answer_json = json.loads(
-            stu_answer.replace("\\\"",  "\""))
     except Exception:
         CgiLog.warning("ques_extra_data has wrong format")
         return None
+    try:
+        stu_answer_json = json.loads(
+            stu_answer.replace("\\\"", "\""))
+    except Exception:
+        stu_answer_json = []
     if ("choices" not in extra_json_of_ques or
             "answer" not in extra_json_of_ques):
         CgiLog.warning("ques_extra_data has wrong format")
@@ -156,7 +159,7 @@ def get_homework_detail(stu_id, hw_id):
            "stu_id=\"%s\" AND hw_id=%s" % (stu_id, str(hw_id)))
 
     ret_data = dbtool.raw_query(sql)
-    if ret_data is None or len(ret_data) == 0:
+    if ret_data is None:
         CgiLog.warning("student_lib: raw query failed, sql:%s", sql)
         dbtool.destroy()
         return None

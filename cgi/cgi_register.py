@@ -3,7 +3,8 @@ import json
 import time
 
 from flask import Flask
-from flask import request, session
+from flask import request
+from flask import session
 
 from cgi_libs.cgi_log import CgiLog
 from cgi_libs.authenticate import authenticate_request
@@ -18,15 +19,14 @@ app = Flask(__name__)
 app.secret_key = "GDUT_SOFTWARE_ENGINEERING"
 
 
-RESULT_CGI_SUCCESS = 0
-RESULT_CGI_ERR = 300
-
-RESULT_SESS_EXPIRE = 1
-
-RESULT_USERNAME_NOT_EXIST = 100
-RESULT_PWD_NOT_RIGHT = 101
-RESULT_SERVER_ERR = 102
+# 返回给前端的结果码reuslt定义
+RESULT_CGI_SUCCESS = 0              # 成功
+RESULT_SESS_EXPIRE = 1              # 登录信息过期
+RESULT_USERNAME_NOT_EXIST = 100     # 登录用户名不存在
+RESULT_PWD_NOT_RIGHT = 101          # 登录密码错误
+RESULT_SERVER_ERR = 102             # 服务器内部错误
 RESULT_BAD_PARAMS = 103
+RESULT_CGI_ERR = 300
 
 
 def gen_result_str(result, data):
@@ -179,4 +179,6 @@ def get_homework_detail():
         return gen_result_str(RESULT_CGI_ERR, {})
 
     return gen_result_str(RESULT_CGI_SUCCESS, hw_detail)
+
+
 
