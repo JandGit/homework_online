@@ -37,14 +37,16 @@ def gen_result_str(result, data):
 
 @app.route("/login", methods=["post"])
 def login():
-    req_params = extract_req_params(request, {"user_name": (str, unicode),
-                                              "password": (str, unicode)})
+    req_params = extract_req_params(request.data,
+                                    {"user_name": (str, unicode),
+                                     "password": (str, unicode)})
     if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
 
-    # 前端传来莫名的unicode，需要转str
-    user_name = str(req_params["user_name"])
-    password = str(req_params["password"])
+    CgiLog.debug("login user_name=%s, pwd=%s" %
+                 (req_params["user_name"], req_params["password"]))
+    user_name = req_params["user_name"]
+    password = req_params["password"]
 
     auth_ret, user_type = authenticate_user(user_name, password)
     if auth_ret != 0:
@@ -117,13 +119,13 @@ def get_student_homeworks():
         CgiLog.warning("cgi:authenticate_request failed while "
                        "get_student_homeworks")
         return gen_result_str(RESULT_SESS_EXPIRE, {})
-    req_params = extract_req_params(request,
+    req_params = extract_req_params(request.data,
                                     {"homework_type": (str, unicode)})
     if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
 
-    ret_data = student_lib.get_student_homework(session["user_name"],
-                                                req_params["homework_type"])
+    ret_data = student_lib.get_student_homework(
+        session["user_name"], str(req_params["homework_type"]))
     if ret_data is None:
         return gen_result_str(RESULT_CGI_ERR, {})
 
@@ -145,8 +147,8 @@ def commit_homework():
         CgiLog.warning("cgi:authenticate_request failed while "
                        "get_homework_detail")
         return gen_result_str(RESULT_SESS_EXPIRE, {})
-    req_params = extract_req_params(request, {"questions": list,
-                                              "hw_id": int})
+    req_params = extract_req_params(request.data,
+                                    {"questions": list, "hw_id": int})
     if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
 
@@ -166,12 +168,12 @@ def get_homework_detail():
         CgiLog.warning("cgi:authenticate_request failed while "
                        "get_homework_detail")
         return gen_result_str(RESULT_SESS_EXPIRE, {})
-    req_params = extract_req_params(request, {"hw_id": int})
+    req_params = extract_req_params(request.data, {"hw_id": int})
     if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
 
-    hw_detail = student_lib.get_homework_detail(session["user_name",
-                                                req_params["hw_id"]])
+    hw_detail = student_lib.get_homework_detail(session["user_name"],
+                                                req_params["hw_id"])
     if hw_detail is None:
         CgiLog.warning("get homework detail error")
         return gen_result_str(RESULT_CGI_ERR, {})

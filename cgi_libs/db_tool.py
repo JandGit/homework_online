@@ -53,7 +53,7 @@ class DbTool(object):
         执行原始sql语句
         :return: 执行成功时返回list，执行失败时返回None
         """
-        assert isinstance(sql, str)
+        assert isinstance(sql, (str, unicode))
         assert self.m_db_connector is not None
 
         cursor = None
@@ -77,7 +77,7 @@ class DbTool(object):
 
     def insert(self, table_name, data_dict):
         assert isinstance(data_dict, dict) and len(data_dict) > 0
-        assert isinstance(table_name, str)
+        assert isinstance(table_name, (str, unicode))
         assert self.m_db_connector is not None
 
         column_names = data_dict.keys()
@@ -111,9 +111,9 @@ class DbTool(object):
         return True
 
     def query(self, table_name, column_names, where_str):
-        assert (isinstance(table_name, str) and
-                isinstance(column_names, str) and
-                isinstance(where_str, str))
+        assert (isinstance(table_name, (str, unicode)) and
+                isinstance(column_names, (str, unicode)) and
+                isinstance(where_str, (str, unicode)))
         assert self.m_db_connector is not None
 
         sql = "SELECT %s FROM %s WHERE %s" % (column_names,
@@ -139,7 +139,7 @@ class DbTool(object):
 
     def update(self, table_name, data_dict, where_str):
         assert isinstance(data_dict, dict) and len(data_dict) > 0
-        assert isinstance(table_name, str) and isinstance(where_str, str)
+        assert isinstance(table_name, (str, unicode)) and isinstance(where_str, (str, unicode))
         assert self.m_db_connector is not None
 
         value_set_str = ""

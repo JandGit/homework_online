@@ -15,7 +15,8 @@ def authenticate_user(user_name, password):
     :return: (result, user_type)，其中result代表验证结果，0表示验证通过，-1表示密码错误，-2表示帐号不存在，-3表示参数有误
                其他值表示服务器异常。user_type在验证成功时会赋值为用户类型，如"admin"、"student"等
     """
-    if not isinstance(user_name, str) or not isinstance(password, str):
+    if (not isinstance(user_name, (str, unicode)) or
+            not isinstance(password, (str, unicode))):
         CgiLog.debug("user:bad params")
         return RET_DB_TOOL_ERR, ""
 
@@ -52,7 +53,7 @@ def get_notices(user_name):
     :param user_name: 用户名
     :return: (result, data)，result为0表示获取成功，data为数组存放公告，数组元素为数据库公告定义，result < 0表示获取失败
     """
-    if not isinstance(user_name, str):
+    if not isinstance(user_name, (str, unicode)):
         CgiLog.debug("user: user_name is not str")
         return None
     dbtool = DbTool()

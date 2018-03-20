@@ -9,7 +9,7 @@ from cgi_log import CgiLog
 
 
 def get_student_info(user_name):
-    assert isinstance(user_name, str)
+    assert isinstance(user_name, (str, unicode))
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.debug("student_lib: dbtool init failed while get_student_info")
@@ -30,8 +30,8 @@ def get_student_info(user_name):
 
 
 def get_student_homework(user_name, homework_type):
-    assert (isinstance(user_name, str) and
-            isinstance(homework_type, str))
+    assert (isinstance(user_name, (str, unicode)) and
+            isinstance(homework_type, (str, unicode)))
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.error("student_lib: dbtool init failed "
@@ -40,7 +40,7 @@ def get_student_homework(user_name, homework_type):
 
     sql = ("SELECT homework.hw_id, homework.title, homework.date_start, "
            "homework.date_end, t_name FROM stu_homework, homework, teacher "
-           "WHERE stu_id=\"%s\" AND homework.status=\"%s\" AND "
+           "WHERE stu_id=\"%s\" AND stu_homework.status=\"%s\" AND "
            "homework.hw_id=stu_homework.hw_id AND "
            "homework.t_id=teacher.t_id" % (user_name, homework_type))
 
@@ -55,68 +55,56 @@ def get_student_homework(user_name, homework_type):
     return ret_data
 
 
-def _get_free_resp_ques_data(item_data, dbtool):
-    assert item_data is not None and dbtool is not None
-    assert len(item_data) > 0
+def _get_free_resp_ques_data(item_data):
+    assert item_data is not None and len(item_data) > 0
 
-    (ques_id, ques_data_id, ques_type, status,
-     ques_content, answer, right_answer) = item_data
+    (ques_id, ques_type, status, ques_content,
+     ques_extra_data, stu_answer) = item_data
 
-    sql = ("SELECT answer FROM stu_question_choice WHERE "
-           "ques_data_id=%s" % str(ques_data_id))
-    ret_data = dbtool.raw_query(sql)
-    if ret_data is None or 0 == len(ret_data):
-        CgiLog.warning("student_lib: raw query failed while "
-                       "_get_choice_ques_data")
-        return None
-
-    stu_answer = ret_data[0][0]
     return {"ques_id": ques_id, "ques_content": str(ques_content),
             "ques_type": str(ques_type), "status": str(status),
             "answer": [], "stu_answer": str(stu_answer)}
 
 
-def _get_choice_ques_data(item_data, dbtool):
-    assert item_data is not None and dbtool is not None
-    assert len(item_data) > 0
+def _get_choice_ques_data(item_data):
+    assert item_data is not None and len(item_data) > 0
 
-    (ques_id, ques_data_id, ques_type, status,
-     ques_content) = item_data
+    (ques_id, ques_type, status, ques_content,
+        ques_extra_data, stu_answer) = item_data
 
-    sql = ("SELECT answer FROM stu_question_choice WHERE "
-           "ques_data_id=%s" % str(ques_data_id))
-    ret_data = dbtool.raw_query(sql)
-    if ret_data is None:
-        CgiLog.warning("student_lib: raw query failed while "
-                       "_get_choice_ques_data")
+    try:
+        extra_json_of_ques = json.loads(
+            ques_extra_data.replace("\\\"",  "\""))
+        stu_answer_json = json.loads(
+            stu_answer.replace("\\\"",  "\""))
+    except Exception:
+        CgiLog.warning("ques_extra_data has wrong format")
+        return None
+    if ("choices" not in extra_json_of_ques or
+            "answer" not in extra_json_of_ques):
+        CgiLog.warning("ques_extra_data has wrong format")
+        return None
+    if (not isinstance(extra_json_of_ques["choices"], list) or
+            not isinstance(extra_json_of_ques["answer"], list)):
+        CgiLog.warning("the answer or choices is not a list")
         return None
 
-    if 0 == len(ret_data):
-        stu_answer = []
-    else:
-        stu_answer = str(ret_data[0][0]).split(";")
-
-    sql = ("SELECT answer, right_answer FROM question, question_choice WHERE "
-           "question.ques_id=%s AND question.ques_data_id=question_choice.ques_data_id"
-           % str(ques_id))
-    ret_data = dbtool.raw_query(sql)
-    if ret_data is None or 0 == len(ret_data):
-        CgiLog.warning("student_lib: raw query failed")
-        return None
-    (answer, right_answer) = ret_data[0]
-
-    if 1 == right_answer.count(";"):
+    if 1 == len(extra_json_of_ques["answer"]):
         ques_type = "single_choice"
-    else:
+    elif len(extra_json_of_ques["answer"]) > 1:
         ques_type = "multi_choice"
+    else:
+        CgiLog.warning("wrong answer count in question")
+        return None
 
-    return {"ques_id": ques_id, "ques_content": str(ques_content),
-            "ques_type": str(ques_type), "status": str(status),
-            "answer": str(answer).split(";"), "stu_answer": stu_answer}
+    return {"ques_id": ques_id, "ques_content": ques_content,
+            "ques_type": ques_type, "status": status,
+            "answer": extra_json_of_ques["choices"],
+            "stu_answer": stu_answer_json}
 
 
 def commit_homework(stu_id, hw_id, finished_ques):
-    assert isinstance(hw_id, int) and isinstance(stu_id, str)
+    assert isinstance(hw_id, int) and isinstance(stu_id, (str, unicode))
     assert isinstance(finished_ques, list)
     dbtool = DbTool()
     if not dbtool.init():
@@ -137,7 +125,6 @@ def commit_homework(stu_id, hw_id, finished_ques):
     for one_ques in finished_ques:
         answer = json.dumps(one_ques["stu_answer"],
                             ensure_ascii=False).replace("\"", "\\\"")
-
         ques_id = one_ques["ques_id"]
         sql = ("UPDATE stu_question SET date_finished=NOW(), "
                "status=\"committed\", answer=\"%s\" WHERE stu_id=\"%s\" "
@@ -156,16 +143,16 @@ def commit_homework(stu_id, hw_id, finished_ques):
 
 
 def get_homework_detail(stu_id, hw_id):
-    assert isinstance(hw_id, int) and isinstance(stu_id, str)
+    assert isinstance(hw_id, int) and isinstance(stu_id, (str, unicode))
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.warning("student_lib: dbtool init failed "
                        "while get_homework_detail")
         return None
 
-    sql = ("SELECT question.ques_id, stu_question.ques_data_id, ques_type, status, "
-           "ques_content FROM "
-           "stu_question, question WHERE question.ques_id=stu_question.ques_id AND "
+    sql = ("SELECT question.ques_id, ques_type, status, ques_content, "
+           "ques_extra_data, answer FROM stu_question, question WHERE "
+           "question.ques_id=stu_question.ques_id AND "
            "stu_id=\"%s\" AND hw_id=%s" % (stu_id, str(hw_id)))
 
     ret_data = dbtool.raw_query(sql)
@@ -175,16 +162,17 @@ def get_homework_detail(stu_id, hw_id):
         return None
 
     questions = []
-    for (ques_id, ques_data_id, ques_type, status,
-            ques_content) in ret_data:
+    CgiLog.debug("return data:%s" % str(ret_data))
+    for (ques_id, ques_type, status, ques_content, ques_extra_data,
+            stu_answer) in ret_data:
         if ques_type == "choice":
             questions_item = _get_choice_ques_data(
-                (ques_id, ques_data_id, ques_type, status,
-                 ques_content), dbtool)
+                (ques_id, ques_type, status, ques_content,
+                 ques_extra_data, stu_answer))
         elif ques_type == "free_resp":
             questions_item = _get_free_resp_ques_data(
-                (ques_id, ques_data_id, ques_type, status,
-                 ques_content), dbtool)
+                (ques_id, ques_type, status, ques_content,
+                 ques_extra_data, stu_answer))
         else:
             CgiLog.warning("there is a question with invalid ques_type, ignore")
             continue
