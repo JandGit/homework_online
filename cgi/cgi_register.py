@@ -7,6 +7,7 @@ from flask import request, session
 
 from cgi_libs.cgi_log import CgiLog
 from cgi_libs.authenticate import authenticate_request
+from cgi_libs.authenticate import extract_req_params
 from cgi_libs.user import authenticate_user
 from cgi_libs.user import get_notices
 from cgi_libs.user import RET_PWD_ERR
@@ -18,6 +19,7 @@ app.secret_key = "GDUT_SOFTWARE_ENGINEERING"
 
 
 RESULT_CGI_SUCCESS = 0
+RESULT_SESS_EXPIRE = 1
 RESULT_CGI_ERR = 300
 
 RESULT_USERNAME_NOT_EXIST = 100
@@ -34,16 +36,14 @@ def gen_result_str(result, data):
 
 @app.route("/login", methods=["post"])
 def login():
-    try:
-        req_json_obj = json.loads(request.data)
-    except Exception as e:
-        CgiLog.exception("exception while deal request:%s" % str(e))
-        return gen_result_str(RESULT_CGI_ERR, {})
-    CgiLog.debug("receive request /api/login:%s" % req_json_obj)
+    req_params = extract_req_params(request, {"user_name": (str, unicode),
+                                              "password": (str, unicode)})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
 
     # 前端传来莫名的unicode，需要转str
-    user_name = str(req_json_obj["user_name"])
-    password = str(req_json_obj["password"])
+    user_name = str(req_params["user_name"])
+    password = str(req_params["password"])
 
     auth_ret, user_type = authenticate_user(user_name, password)
     if auth_ret != 0:
@@ -68,7 +68,7 @@ def login():
 def get_student_info():
     if not authenticate_request(request, session):
         CgiLog.warning("authenticate_request failed")
-        return gen_result_str(RESULT_CGI_ERR, {})
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
 
     data = student_lib.get_student_info(session["user_name"])
     if data is None:
@@ -92,11 +92,11 @@ def get_student_notices():
     if not authenticate_request(request, session):
         CgiLog.warning("cgi:authenticate_request failed "
                        "while get_student_notices")
-        return gen_result_str(RESULT_CGI_ERR, {})
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
 
     notices = get_notices(session["user_name"])
     if notices is None:
-        return gen_result_str(RESULT_CGI_ERR, {})
+        return gen_result_str(RESULT_BAD_PARAMS, {})
 
     ret_notices = []
     for (notice_id, title, date, author, content) in notices:
@@ -115,18 +115,14 @@ def get_student_homeworks():
     if not authenticate_request(request, session):
         CgiLog.warning("cgi:authenticate_request failed while "
                        "get_student_homeworks")
-        return gen_result_str(RESULT_CGI_ERR, {})
-    try:
-        req_json_obj = json.loads(request.data)
-    except Exception as e:
-        CgiLog.exception("cgi:exception while deal request: %s" % str(e))
-        return gen_result_str(RESULT_CGI_ERR, {})
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+    req_params = extract_req_params(request,
+                                    {"homework_type": (str, unicode)})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
 
-    if "homework_type" not in req_json_obj:
-        CgiLog.warning("cgi:bad params in get_student_homeworks")
-        return gen_result_str(RESULT_CGI_ERR, {})
-
-    ret_data = student_lib.get_student_homework(session["user_name"])
+    ret_data = student_lib.get_student_homework(session["user_name"],
+                                                req_params["homework_type"])
     if ret_data is None:
         return gen_result_str(RESULT_CGI_ERR, {})
 
@@ -147,20 +143,14 @@ def commit_homework():
     if not authenticate_request(request, session):
         CgiLog.warning("cgi:authenticate_request failed while "
                        "get_homework_detail")
-        return gen_result_str(RESULT_CGI_ERR, {})
-    try:
-        req_json_obj = json.loads(request.data)
-    except Exception as e:
-        CgiLog.debug("cgi:bad request params: %s" % str(e))
-        return gen_result_str(RESULT_CGI_ERR, {})
-
-    if "questions" not in req_json_obj or "hw_id" not in req_json_obj:
-        return gen_result_str(RESULT_BAD_PARAMS, {})
-    questions = req_json_obj["questions"]
-    hw_id = req_json_obj["hw_id"]
-    if not isinstance(questions, list):
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+    req_params = extract_req_params(request, {"questions": list,
+                                              "hw_id": int})
+    if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
 
+    questions = req_params["questions"]
+    hw_id = req_params["hw_id"]
     result = student_lib.commit_homework(session["user_name"],
                                          hw_id, questions)
     if result:
@@ -174,19 +164,13 @@ def get_homework_detail():
     if not authenticate_request(request, session):
         CgiLog.warning("cgi:authenticate_request failed while "
                        "get_homework_detail")
-        return gen_result_str(RESULT_CGI_ERR, {})
-    try:
-        req_json_obj = json.loads(request.data)
-    except Exception as e:
-        CgiLog.exception("cgi:exception while deal request: %s" % str(e))
-        return gen_result_str(RESULT_CGI_ERR, {})
-
-    if "hw_id" not in req_json_obj:
-        CgiLog.warning("cgi:bad params in get_homework_detail")
-        return gen_result_str(RESULT_CGI_ERR, {})
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+    req_params = extract_req_params(request, {"hw_id": int})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
 
     hw_detail = student_lib.get_homework_detail(session["user_name",
-                                                req_json_obj["hw_id"]])
+                                                req_params["hw_id"]])
     if hw_detail is None:
         CgiLog.warning("get homework detail error")
         return gen_result_str(RESULT_CGI_ERR, {})

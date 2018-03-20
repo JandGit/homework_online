@@ -29,8 +29,9 @@ def get_student_info(user_name):
     return ret_data[0]
 
 
-def get_student_homework(user_name):
-    assert isinstance(user_name, str)
+def get_student_homework(user_name, homework_type):
+    assert (isinstance(user_name, str) and
+            isinstance(homework_type, str))
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.error("student_lib: dbtool init failed "
@@ -39,8 +40,9 @@ def get_student_homework(user_name):
 
     sql = ("SELECT homework.hw_id, homework.title, homework.date_start, "
            "homework.date_end, t_name FROM stu_homework, homework, teacher "
-           "WHERE stu_id=\"%s\" AND homework.hw_id=stu_homework.hw_id AND "
-           "homework.t_id=teacher.t_id" % user_name)
+           "WHERE stu_id=\"%s\" AND homework.status=\"%s\" AND "
+           "homework.hw_id=stu_homework.hw_id AND "
+           "homework.t_id=teacher.t_id" % (user_name, homework_type))
 
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
