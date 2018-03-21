@@ -89,14 +89,6 @@ def _get_choice_ques_data(item_data):
         CgiLog.warning("the answer or choices is not a list")
         return None
 
-    if 1 == len(extra_json_of_ques["answer"]):
-        ques_type = "single_choice"
-    elif len(extra_json_of_ques["answer"]) > 1:
-        ques_type = "multi_choice"
-    else:
-        CgiLog.warning("wrong answer count in question")
-        return None
-
     return {"ques_id": ques_id, "ques_content": ques_content,
             "ques_type": ques_type, "status": status,
             "answer": extra_json_of_ques["choices"],
@@ -165,7 +157,7 @@ def get_homework_detail(stu_id, hw_id):
     idx = 0
     for (ques_id, ques_type, status, ques_content, ques_extra_data,
             stu_answer) in ret_data:
-        if ques_type == "choice":
+        if ques_type == "single_choice" or ques_type == "multi_choice":
             json_item = _get_choice_ques_data(ret_data[idx])
         elif ques_type == "free_resp":
             json_item = _get_free_resp_ques_data(ret_data[idx])

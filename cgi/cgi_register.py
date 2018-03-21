@@ -14,6 +14,7 @@ from cgi_libs.user import get_notices
 from cgi_libs.user import RET_PWD_ERR
 from cgi_libs.user import RET_NO_SUCH_USER
 from cgi_libs import student_lib
+from cgi_libs import teacher_lib
 
 app = Flask(__name__)
 app.secret_key = "GDUT_SOFTWARE_ENGINEERING"
@@ -188,10 +189,71 @@ def get_stu_homeworks():
     if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
 
+    ret_data = teacher_lib.get_stu_homeworks(
+        req_params["homework_type"], req_params["class_id"])
+    if ret_data is None:
+        CgiLog.warning("get student homeworks failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, ret_data)
+
+
+@app.route("/teacher/stu_homeworks_detail", methods=["post"])
+def get_stu_homeworks_detail():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+    req_params = extract_req_params(request.data,
+                                    {"stu_id": (str, unicode),
+                                     "hw_id": int})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    ret_data = teacher_lib.get_stu_homeworks_detail(
+        req_params["stu_id"], req_params["hw_id"])
+    if ret_data is None:
+        CgiLog.warning("stu_homeworks_detail failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, ret_data)
+
 
 @app.route("/teacher/questions", methods=["get"])
 def get_questions():
     if not authenticate_request(request, session):
         CgiLog.warning("cgi:authenticate_request failed")
         return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    ret_data = teacher_lib.get_questions()
+    if ret_data is None:
+        CgiLog.warning("stu_homeworks_detail failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, ret_data)
+
+
+@app.route("/teacher/homeworks", methods=["post"])
+def get_t_homeworks():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    ret_data = teacher_lib.get_homeworks(session["user_name"])
+    if ret_data is None:
+        CgiLog.warning("get homeworks failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, ret_data)
+
+
+@app.route("/teacher/homeworks_detail", methods=["post"])
+def get_t_homeworks_detail():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+    req_params = extract_req_params(request.data,
+                                    {"hw_id": int})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
 

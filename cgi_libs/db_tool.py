@@ -76,6 +76,11 @@ class DbTool(object):
         return data
 
     def insert(self, table_name, data_dict):
+        """
+        插入一行数据到db
+        e.g. dbtool.insert("student", {"stu_id": 3114006520,"class_id": 123456})
+        :return: 成功返回True，失败返回False
+        """
         assert isinstance(data_dict, dict) and len(data_dict) > 0
         assert isinstance(table_name, (str, unicode))
         assert self.m_db_connector is not None
