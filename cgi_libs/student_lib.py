@@ -2,10 +2,8 @@
 
 import json
 
-# from cgi_libs.db_tool import DbTool
-# from cgi_libs.cgi_log import CgiLog
-from db_tool import DbTool
-from cgi_log import CgiLog
+from cgi_libs.db_tool import DbTool
+from cgi_libs.cgi_log import CgiLog
 
 
 def get_student_info(user_name):
@@ -59,8 +57,7 @@ def _get_free_resp_ques_data(item_data):
     assert item_data is not None and len(item_data) > 0
 
     (ques_id, ques_type, status, ques_content,
-     ques_extra_data, stu_answer) = item_data
-
+        ques_extra_data, stu_answer) = item_data
     return {"ques_id": ques_id, "ques_content": str(ques_content),
             "ques_type": str(ques_type), "status": str(status),
             "answer": [], "stu_answer": str(stu_answer)}
@@ -165,21 +162,21 @@ def get_homework_detail(stu_id, hw_id):
         return None
 
     questions = []
-    CgiLog.debug("return data:%s" % str(ret_data))
+    idx = 0
     for (ques_id, ques_type, status, ques_content, ques_extra_data,
             stu_answer) in ret_data:
         if ques_type == "choice":
-            questions_item = _get_choice_ques_data(
-                (ques_id, ques_type, status, ques_content,
-                 ques_extra_data, stu_answer))
+            json_item = _get_choice_ques_data(ret_data[idx])
         elif ques_type == "free_resp":
-            questions_item = _get_free_resp_ques_data(
-                (ques_id, ques_type, status, ques_content,
-                 ques_extra_data, stu_answer))
+            json_item = _get_free_resp_ques_data(ret_data[idx])
         else:
-            CgiLog.warning("there is a question with invalid ques_type, ignore")
-            continue
-        questions.append(questions_item)
+            CgiLog.warning("there is a question with "
+                           "invalid ques_type, ignore")
+            json_item = None
+
+        if json_item is not None:
+            questions.append(json_item)
+        idx += 1
 
     dbtool.destroy()
     return {"hw_id": hw_id, "title": "title", "author": "author",

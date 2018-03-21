@@ -93,8 +93,7 @@ def get_student_info():
 @app.route("/student/notices", methods=["post"])
 def get_student_notices():
     if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed "
-                       "while get_student_notices")
+        CgiLog.warning("cgi:authenticate_request failed")
         return gen_result_str(RESULT_SESS_EXPIRE, {})
 
     notices = get_notices(session["user_name"])
@@ -116,8 +115,7 @@ def get_student_notices():
 @app.route("/student/homeworks", methods=["post"])
 def get_student_homeworks():
     if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed while "
-                       "get_student_homeworks")
+        CgiLog.warning("cgi:authenticate_request failed")
         return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data,
                                     {"homework_type": (str, unicode)})
@@ -144,8 +142,7 @@ def get_student_homeworks():
 @app.route("/student/commit_homework", methods=["post"])
 def commit_homework():
     if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed while "
-                       "get_homework_detail")
+        CgiLog.warning("cgi:authenticate_request failed")
         return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data,
                                     {"questions": list, "hw_id": int})
@@ -165,8 +162,7 @@ def commit_homework():
 @app.route("/student/homework_detail", methods=["post"])
 def get_homework_detail():
     if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed while "
-                       "get_homework_detail")
+        CgiLog.warning("cgi:authenticate_request failed")
         return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data, {"hw_id": int})
     if req_params is None:
@@ -181,4 +177,21 @@ def get_homework_detail():
     return gen_result_str(RESULT_CGI_SUCCESS, hw_detail)
 
 
+@app.route("/teacher/stu_homeworks", methods=["post"])
+def get_stu_homeworks():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+    req_params = extract_req_params(request.data,
+                                    {"homework_type": (str, unicode),
+                                     "class_id": int})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+
+@app.route("/teacher/questions", methods=["get"])
+def get_questions():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
 
