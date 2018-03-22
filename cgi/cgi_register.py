@@ -232,6 +232,27 @@ def get_questions():
     return gen_result_str(RESULT_CGI_SUCCESS, ret_data)
 
 
+@app.route("/teacher/questions", methods=["post"])
+def add_question():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    params = extract_req_params(request.data,
+                                {"ques_content": (str, unicode),
+                                 "ques_type": (str, unicode),
+                                 "answer": dict})
+    if params is None:
+        CgiLog.warning("bad params:%s" % str(request.data))
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    if not teacher_lib.add_question(params):
+        CgiLog.warning("add question failed")
+        return gen_result_str(RESULT_SERVER_ERR, {})
+    else:
+        return gen_result_str(RESULT_CGI_SUCCESS, {})
+
+
 @app.route("/teacher/homeworks", methods=["post"])
 def get_t_homeworks():
     if not authenticate_request(request, session):
@@ -256,4 +277,88 @@ def get_t_homeworks_detail():
     if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
 
+
+@app.route("/teacher/homeworks/edit", methods=["post"])
+def add_t_homeworks():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+    req_params = extract_req_params(request.data,
+                                    {"title": (str, unicode),
+                                     "date_start": (str, unicode),
+                                     "date_end": (str, unicode),
+                                     "class_ids": list})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    if not teacher_lib.add_homework(session["user_name"], req_params):
+        return gen_result_str(RESULT_SERVER_ERR, {})
+    else:
+        return gen_result_str(RESULT_CGI_SUCCESS, {})
+
+
+@app.route("/teacher/teach_class", methods=["get"])
+def get_teach_class():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    class_info = teacher_lib.get_teach_class(session["user_name"])
+    if class_info is None:
+        CgiLog.warning("get teach class failed")
+        return gen_result_str(RESULT_SERVER_ERR, {})
+    else:
+        return gen_result_str(RESULT_CGI_SUCCESS, class_info)
+
+
+@app.route("/teacher/teacher_info", methods=["get"])
+def get_teacher_info():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    teacher_info = teacher_lib.get_teacher_info(session["user_name"])
+    if teacher_info is None:
+        CgiLog.warning("get teach class failed")
+        return gen_result_str(RESULT_SERVER_ERR, {})
+    else:
+        return gen_result_str(RESULT_CGI_SUCCESS, teacher_info)
+
+
+@app.route("/teacher/homeworks/add_question", methods=["post"])
+def add_question_to_hw():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"hw_id": int, "ques_id": int})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    if not teacher_lib.add_question_to_hw(req_params["hw_id"],
+                                          req_params["ques_id"]):
+        CgiLog.warning("add question to hw failed")
+        return gen_result_str(RESULT_SERVER_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, {})
+
+
+@app.route("/teacher/homeworks/del_question", methods=["post"])
+def del_question_from_hw():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"hw_id": int, "ques_id": int})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    if not teacher_lib.del_question_from_hw(req_params["hw_id"],
+                                            req_params["ques_id"]):
+        CgiLog.warning("del question to hw failed")
+        return gen_result_str(RESULT_SERVER_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, {})
 

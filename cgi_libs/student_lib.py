@@ -44,8 +44,7 @@ def get_student_homework(user_name, homework_type):
 
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
-        CgiLog.warning("student_lib: raw query failed while "
-                       "get_student_homework")
+        CgiLog.warning("student_lib: raw query failed")
         dbtool.destroy()
         return None
 
@@ -58,9 +57,15 @@ def _get_free_resp_ques_data(item_data):
 
     (ques_id, ques_type, status, ques_content,
         ques_extra_data, stu_answer) = item_data
-    return {"ques_id": ques_id, "ques_content": str(ques_content),
-            "ques_type": str(ques_type), "status": str(status),
-            "answer": [], "stu_answer": str(stu_answer)}
+    try:
+        stu_answer = json.loads(
+            stu_answer.replace("\\\"",  "\""))
+    except Exception:
+        CgiLog.warning("ques_extra_data has wrong format")
+        stu_answer = {"answer": ""}
+    return {"ques_id": ques_id, "ques_content": ques_content,
+            "ques_type": ques_type, "status": status,
+            "answer": [], "stu_answer": stu_answer}
 
 
 def _get_choice_ques_data(item_data):
@@ -115,8 +120,13 @@ def commit_homework(stu_id, hw_id, finished_ques):
         return False
 
     for one_ques in finished_ques:
-        answer = json.dumps(one_ques["stu_answer"],
-                            ensure_ascii=False).replace("\"", "\\\"")
+        if (one_ques["ques_type"] == "single_choice" or
+                one_ques["ques_type"] == "multi_choice"):
+            answer = json.dumps({"choice": [one_ques["stu_answer"]]},
+                                ensure_ascii=False).replace("\"", "\\\"")
+        else:
+            answer = json.dumps({"answer": [one_ques["stu_answer"]]},
+                                ensure_ascii=False).replace("\"", "\\\"")
         ques_id = one_ques["ques_id"]
         sql = ("UPDATE stu_question SET date_finished=NOW(), "
                "status=\"committed\", answer=\"%s\" WHERE stu_id=\"%s\" "
