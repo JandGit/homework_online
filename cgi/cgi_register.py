@@ -15,6 +15,7 @@ from cgi_libs.user import RET_PWD_ERR
 from cgi_libs.user import RET_NO_SUCH_USER
 from cgi_libs import student_lib
 from cgi_libs import teacher_lib
+from cgi_libs import admin_lib
 
 app = Flask(__name__)
 app.secret_key = "GDUT_SOFTWARE_ENGINEERING"
@@ -362,3 +363,74 @@ def del_question_from_hw():
 
     return gen_result_str(RESULT_CGI_SUCCESS, {})
 
+
+@app.route("/admin/teacher_list", methods=["post"])
+def search_teacher_list():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"search": (str, unicode)})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    ret_data = admin_lib.search_teacher_list(req_params["search"])
+    if ret_data is None:
+        CgiLog.warning("search_teacher_list failed")
+        return gen_result_str(RESULT_SERVER_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, ret_data)
+
+
+@app.route("/admin/add_teacher", methods=["post"])
+def add_teacher():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"t_id": (str, unicode),
+                                     "t_name": (str, unicode),
+                                     "class_list": list})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+
+@app.route("/admin/modify_teacher", methods=["post"])
+def modify_teacher():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"old_t_id": (str, unicode),
+                                     "new_t_id": (str, unicode),
+                                     "new_t_name": (str, unicode),
+                                     "new_class_list": list})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+
+@app.route("/admin/del_teacher", methods=["post"])
+def del_teacher():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"t_id": (str, unicode)})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+
+@app.route("/admin/stu_list", methods=["post"])
+def search_stu_list():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"search": (str, unicode)})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})

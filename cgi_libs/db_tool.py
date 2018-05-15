@@ -24,11 +24,11 @@ class DbTool(object):
             return True
         except mysql.connector.Error as err:
             if err.errno == errorcode.ER_ACCESS_DENIED_ERROR:
-                CgiLog.debug("dbtool:username or password error")
+                CgiLog.warning("dbtool:username or password error")
             elif err.errno == errorcode.ER_BAD_DB_ERROR:
-                CgiLog.debug("dbtool:Database does not exist")
+                CgiLog.warning("dbtool:Database does not exist")
             else:
-                CgiLog.debug("dbtool:%s" % str(err))
+                CgiLog.warning("dbtool:%s" % str(err))
             return False
 
     def destroy(self):
@@ -41,12 +41,26 @@ class DbTool(object):
         self.m_db_connector.start_transaction()
 
     def commit(self):
+        """
+        执行一些数据库修改操作时记得要commit
+        :return 成功返回True，失败返回False
+        """
         assert self.m_db_connector is not None
-        self.m_db_connector.commit()
+        try:
+            self.m_db_connector.commit()
+        except mysql.connector.Error as err:
+            CgiLog.warning("commit failed:%s" % str(err))
+            return False
+        return True
 
     def rollback(self):
         assert self.m_db_connector is not None
-        self.m_db_connector.rollback()
+        try:
+            self.m_db_connector.rollback()
+        except mysql.connector.Error as err:
+            CgiLog.warning("rollback failed:%s" % str(err))
+            return False
+        return True
 
     def raw_query(self, sql):
         """
@@ -175,48 +189,56 @@ class DbTool(object):
 
 
 # self test
+# 测试sql
+def get_sql_str(table_name, data_dict):
+    column_cnt = len(data_dict)
+    column_names = data_dict.keys()
+    column_values = data_dict.values()
+    sql_column_name = ""
+    sql_column_value = ""
+
+    for i in range(column_cnt):
+        sql_column_name += str(column_names[i])
+        sql_column_value += "%s"
+        if i != column_cnt - 1:
+            sql_column_name += ", "
+            sql_column_value += ", "
+
+    sql = ("INSERT INTO %s (%s) VALUES (%s)" %
+           (table_name, sql_column_name, sql_column_value))
+    return sql, column_values
+# print get_sql_str("user", {"user_name": "user1", "password": "pwd"})
+
+
+# 测试insert等操作
+def test_dbtool():
+    dbtool = DbTool()
+    assert dbtool.init()
+    assert dbtool.insert("student",
+                         {"stu_id": 3114006520,
+                          "class_id": 123456,
+                          "stu_name": "j",
+                          "stu_gender": "man",
+                          "stu_department": 123456})
+
+    print dbtool.query("student", "stu_id, class_id, stu_name", "1=1")
+
+    assert dbtool.update("student",
+                         {"class_id": 123456,
+                          "stu_name": "\"hehehehehehehehehheeheheh\"",
+                          "stu_gender": "\"man\"",
+                          "stu_department": 123456},
+                         "stu_id=3114006520"
+                         )
+    print dbtool.query("student", "stu_id, class_id, stu_name", "1=1")
+
+
+def _test_delete():
+    dbtool = DbTool()
+    assert dbtool.init()
+    dbtool.raw_query("DELETE FROM teacher;")
+
+
 if __name__ == "__main__":
-
-    # 测试sql
-    def get_sql_str(table_name, data_dict):
-        column_cnt = len(data_dict)
-        column_names = data_dict.keys()
-        column_values = data_dict.values()
-        sql_column_name = ""
-        sql_column_value = ""
-
-        for i in range(column_cnt):
-            sql_column_name += str(column_names[i])
-            sql_column_value += "%s"
-            if i != column_cnt - 1:
-                sql_column_name += ", "
-                sql_column_value += ", "
-
-        sql = ("INSERT INTO %s (%s) VALUES (%s)" %
-               (table_name, sql_column_name, sql_column_value))
-        return sql, column_values
-    # print get_sql_str("user", {"user_name": "user1", "password": "pwd"})
-
-    # 测试insert等操作
-    def test_dbtool():
-        dbtool = DbTool()
-        assert dbtool.init()
-        assert dbtool.insert("student",
-                             {"stu_id": 3114006520,
-                              "class_id": 123456,
-                              "stu_name": "j",
-                              "stu_gender": "man",
-                              "stu_department": 123456})
-
-        print dbtool.query("student", "stu_id, class_id, stu_name", "1=1")
-
-        assert dbtool.update("student",
-                             {"class_id": 123456,
-                              "stu_name": "\"hehehehehehehehehheeheheh\"",
-                              "stu_gender": "\"man\"",
-                              "stu_department": 123456},
-                             "stu_id=3114006520"
-                             )
-        print dbtool.query("student", "stu_id, class_id, stu_name", "1=1")
-
-    test_dbtool()
+    _test_delete()
+    # test_dbtool()

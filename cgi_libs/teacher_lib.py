@@ -358,10 +358,10 @@ def add_homework(t_id, hw_params):
     del hw_params["class_ids"]
 
     dbtool.start_transaction()
-    sql = ("INSERT INTO homework(title, date_start, date_end) VALUES "
-           "(\"%s\", \"%s\", \"%s\")" % (hw_params["title"],
-                                         hw_params["date_start"],
-                                         hw_params["date_end"]))
+    sql = ("INSERT INTO homework(title, date_start, date_end, t_id) VALUES "
+           "(\"%s\", \"%s\", \"%s\", \"%s\")" %
+           (hw_params["title"], hw_params["date_start"],
+            hw_params["date_end"], t_id))
     if dbtool.raw_query(sql) is None:
         CgiLog.warning("insert failed")
         dbtool.destroy()
@@ -420,7 +420,7 @@ def get_teacher_info(t_id):
         CgiLog.warning("student_lib: dbtool init failed")
         return None
 
-    sql = ("SELECT t_name, dept_name, FROM teacher, department WHERE "
+    sql = ("SELECT t_name, dept_name FROM teacher, department WHERE "
            "teacher.dept_id=department.dept_id AND "
            "teacher.t_id=\"%s\"" % t_id)
 
@@ -471,5 +471,3 @@ def del_question_from_hw(hw_id, ques_id):
 
     dbtool.destroy()
     return True
-
-
