@@ -139,7 +139,12 @@ def commit_homework(stu_id, hw_id, finished_ques):
             dbtool.destroy()
             return False
 
-    dbtool.commit()
+    if not dbtool.commit():
+        CgiLog.warning("commit failed")
+        dbtool.rollback()
+        dbtool.destroy()
+        return False
+
     dbtool.destroy()
     return True
 

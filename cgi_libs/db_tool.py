@@ -67,6 +67,7 @@ class DbTool(object):
         执行原始sql语句
         :return: 执行成功时返回list，执行失败时返回None
         """
+        # FIXME 此接口不完善，有SQL注入漏洞，可以使用cursor.execute的第二个参数作为参数传递防止这个漏洞
         assert isinstance(sql, (str, unicode))
         assert self.m_db_connector is not None
 

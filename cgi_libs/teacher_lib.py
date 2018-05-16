@@ -384,7 +384,12 @@ def add_homework(t_id, hw_params):
             dbtool.destroy()
             return False
 
-    dbtool.commit()
+    if not dbtool.commit():
+        CgiLog.warning("commit failed")
+        dbtool.rollback()
+        dbtool.destroy()
+        return False
+
     dbtool.destroy()
     return True
 
@@ -445,7 +450,7 @@ def add_question_to_hw(hw_id, ques_id):
     sql = ("INSERT IGNORE INTO homework_question(hw_id, ques_id) " 
            "VALUES (%s, %s)" % (hw_id, ques_id))
     ret_data = dbtool.raw_query(sql)
-    if ret_data is None:
+    if ret_data is None or not dbtool.commit():
         CgiLog.warning("raw_query failed")
         dbtool.destroy()
         return False
@@ -464,7 +469,7 @@ def del_question_from_hw(hw_id, ques_id):
     sql = ("DELETE FROM homework_question WHERE hw_id=%s AND ques_id=%s" %
            (hw_id, ques_id))
     ret_data = dbtool.raw_query(sql)
-    if ret_data is None:
+    if ret_data is None or not dbtool.commit():
         CgiLog.warning("raw_query failed")
         dbtool.destroy()
         return False
