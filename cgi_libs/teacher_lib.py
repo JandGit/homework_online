@@ -125,7 +125,7 @@ def _get_homework_item(item_data, dbtool):
 
 
 def get_homeworks(t_id, status=None):
-    assert isinstance(t_id, (str, unicode))
+    assert isinstance(t_id, str)
     # 这样处理是为了sql查询时，status=None表示查询匹配所有
     if status is None:
         status = ""
@@ -139,7 +139,7 @@ def get_homeworks(t_id, status=None):
            "FROM homework, teacher WHERE "
            "homework.t_id=teacher.t_id AND "
            "teacher.t_id=\"%s\" AND homework.status LIKE \"%s%%\"" %
-           (t_id, status))
+           (t_id.encode("utf-8"), status))
 
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
@@ -226,7 +226,7 @@ def get_homework_detail(hw_id):
 
 
 def get_stu_homeworks(homework_type, class_id):
-    assert isinstance(homework_type, (str, unicode))
+    assert isinstance(homework_type, str)
     assert isinstance(class_id, int)
     if homework_type == "all":
         homework_type = ""
@@ -270,7 +270,7 @@ def get_stu_homeworks(homework_type, class_id):
 
 
 def get_stu_homeworks_detail(stu_id, hw_id):
-    assert isinstance(stu_id, (str, unicode))
+    assert isinstance(stu_id, str)
     assert isinstance(hw_id, int) and hw_id >= 0
     dbtool = DbTool()
     if not dbtool.init():
@@ -347,7 +347,7 @@ def get_stu_homeworks_detail(stu_id, hw_id):
 
 
 def add_homework(t_id, hw_params):
-    assert isinstance(t_id, (str, unicode))
+    assert isinstance(t_id, str)
     assert isinstance(hw_params, dict)
     dbtool = DbTool()
     if not dbtool.init():
@@ -361,7 +361,7 @@ def add_homework(t_id, hw_params):
     sql = ("INSERT INTO homework(title, date_start, date_end, t_id) VALUES "
            "(\"%s\", \"%s\", \"%s\", \"%s\")" %
            (hw_params["title"], hw_params["date_start"],
-            hw_params["date_end"], t_id))
+            hw_params["date_end"], t_id.encode("utf-8")))
     if dbtool.raw_query(sql) is None:
         CgiLog.warning("insert failed")
         dbtool.destroy()
@@ -376,6 +376,11 @@ def add_homework(t_id, hw_params):
     hw_id = ret_data[0]
 
     for a_class_id in class_ids:
+        if not isinstance(a_class_id, int):
+            CgiLog.debug("class_id is not int, reject insert")
+            dbtool.rollback()
+            dbtool.destroy()
+            return False
         sql = ("INSERT INTO homework_class(hw_id, class_id) VALUES (%s, %s)"
                % (hw_id, a_class_id))
         if dbtool.raw_query(sql) is None:
@@ -395,7 +400,7 @@ def add_homework(t_id, hw_params):
 
 
 def get_teach_class(t_id):
-    assert isinstance(t_id, (str, unicode))
+    assert isinstance(t_id, str)
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.warning("student_lib: dbtool init failed")
@@ -419,7 +424,7 @@ def get_teach_class(t_id):
 
 
 def get_teacher_info(t_id):
-    assert isinstance(t_id, (str, unicode))
+    assert isinstance(t_id, str)
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.warning("student_lib: dbtool init failed")

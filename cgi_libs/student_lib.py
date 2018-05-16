@@ -7,7 +7,7 @@ from cgi_libs.cgi_log import CgiLog
 
 
 def get_student_info(user_name):
-    assert isinstance(user_name, (str, unicode))
+    assert isinstance(user_name, str)
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.debug("student_lib: dbtool init failed while get_student_info")
@@ -28,8 +28,8 @@ def get_student_info(user_name):
 
 
 def get_student_homework(user_name, homework_type):
-    assert (isinstance(user_name, (str, unicode)) and
-            isinstance(homework_type, (str, unicode)))
+    assert (isinstance(user_name, str) and
+            isinstance(homework_type, str))
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.error("student_lib: dbtool init failed "
@@ -101,7 +101,7 @@ def _get_choice_ques_data(item_data):
 
 
 def commit_homework(stu_id, hw_id, finished_ques):
-    assert isinstance(hw_id, int) and isinstance(stu_id, (str, unicode))
+    assert isinstance(hw_id, int) and isinstance(stu_id, str)
     assert isinstance(finished_ques, list)
     dbtool = DbTool()
     if not dbtool.init():
@@ -150,7 +150,7 @@ def commit_homework(stu_id, hw_id, finished_ques):
 
 
 def get_homework_detail(stu_id, hw_id):
-    assert isinstance(hw_id, int) and isinstance(stu_id, (str, unicode))
+    assert isinstance(hw_id, int) and isinstance(stu_id, str)
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.warning("student_lib: dbtool init failed "

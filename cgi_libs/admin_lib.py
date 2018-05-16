@@ -19,7 +19,7 @@ def search_teacher_list(search_str):
     :param search_str: 要查询的条件，空字符串表示无条件
     :return: 查询成功返回data字段对应的dict，查询失败返回None
     """
-    assert isinstance(search_str, (str, unicode))
+    assert isinstance(search_str, str)
 
     dbtool = DbTool()
     if not dbtool.init():
@@ -57,8 +57,8 @@ def add_teacher(t_id, t_name, class_list):
     添加教师信息
     :return: bool，True表示插入成功， False表示插入失败
     """
-    assert isinstance(t_id, (str, unicode))
-    assert isinstance(t_name, (str, unicode))
+    assert isinstance(t_id, str)
+    assert isinstance(t_name, str)
     assert isinstance(class_list, list)
 
     dbtool = DbTool()
@@ -91,9 +91,9 @@ def add_teacher(t_id, t_name, class_list):
 
 
 def modify_teacher(old_t_id, new_t_id, new_t_name, new_class_list):
-    assert isinstance(old_t_id, (str, unicode))
-    assert isinstance(new_t_id, (str, unicode))
-    assert isinstance(new_t_name, (str, unicode))
+    assert isinstance(old_t_id, str)
+    assert isinstance(new_t_id, str)
+    assert isinstance(new_t_name, str)
     assert isinstance(new_class_list, list)
 
     dbtool = DbTool()
@@ -129,7 +129,7 @@ def modify_teacher(old_t_id, new_t_id, new_t_name, new_class_list):
 
 
 def del_teacher(t_id):
-    assert isinstance(t_id, (str, unicode))
+    assert isinstance(t_id, str)
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.warning("dbtool init failed")
@@ -145,7 +145,7 @@ def del_teacher(t_id):
 
 
 def search_stu_list(search_str):
-    assert isinstance(search_str, (str, unicode))
+    assert isinstance(search_str, str)
 
     dbtool = DbTool()
     if not dbtool.init():
@@ -172,9 +172,9 @@ def search_stu_list(search_str):
 
 
 def modify_stu(old_stu_id, new_stu_id, new_stu_name, new_class_id):
-    assert isinstance(old_stu_id, (str, unicode))
-    assert isinstance(new_stu_id, (str, unicode))
-    assert isinstance(new_stu_name, (str, unicode))
+    assert isinstance(old_stu_id, str)
+    assert isinstance(new_stu_id, str)
+    assert isinstance(new_stu_name, str)
     assert isinstance(new_class_id, int)
 
     dbtool = DbTool()
@@ -194,7 +194,7 @@ def modify_stu(old_stu_id, new_stu_id, new_stu_name, new_class_id):
 
 
 def del_stu(stu_id):
-    assert isinstance(stu_id, (str, unicode))
+    assert isinstance(stu_id, str)
     dbtool = DbTool()
     if not dbtool.init():
         CgiLog.warning("dbtool init failed")
@@ -210,8 +210,8 @@ def del_stu(stu_id):
 
 
 def add_stu(stu_id, stu_name, class_id):
-    assert isinstance(stu_id, (str, unicode))
-    assert isinstance(stu_name, (str, unicode))
+    assert isinstance(stu_id, str)
+    assert isinstance(stu_name, str)
     assert isinstance(class_id, int)
 
     dbtool = DbTool()

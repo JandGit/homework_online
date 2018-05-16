@@ -2,7 +2,7 @@
 import time
 import json
 
-from cgi_libs.cgi_log import CgiLog
+from cgi_log import CgiLog
 
 # 限制最大页面闲置时间为半小时
 MAX_INACTIVE_TIME = 1800
@@ -41,8 +41,11 @@ def extract_req_params(req_param_str, require_params):
     """
     assert (isinstance(req_param_str, (str, unicode)) and
             isinstance(require_params, dict))
+
+    if isinstance(req_param_str, unicode):
+        req_param_str = req_param_str.encode("utf-8")
     try:
-        req_json_obj = json.loads(req_param_str)
+        req_json_obj = _json_loads_byteified(req_param_str)
     except Exception as e:
         CgiLog.exception("request params load failed:%s" % str(e))
         return None
@@ -58,3 +61,31 @@ def extract_req_params(req_param_str, require_params):
             return None
 
     return req_json_obj
+
+
+def _json_loads_byteified(json_text):
+    return _byteify(json.loads(json_text, object_hook=_byteify),
+                    ignore_dicts=True)
+
+
+def _byteify(data, ignore_dicts=False):
+    # if this is a unicode string, return its string representation
+    if isinstance(data, unicode):
+        return data.encode('utf-8')
+    # if this is a list of values, return list of byteified values
+    if isinstance(data, list):
+        return [_byteify(item, ignore_dicts=True) for item in data]
+    # if this is a dictionary, return dictionary of byteified keys and values
+    # but only if we haven't already byteified it
+    if isinstance(data, dict) and not ignore_dicts:
+        return {
+            _byteify(key, ignore_dicts=True):
+            _byteify(value, ignore_dicts=True)
+            for key, value in data.iteritems()}
+    # if it's anything else, return it in its original form
+    return data
+
+
+if __name__ == "__main__":
+    print _json_loads_byteified('{"key": "value"}')
+    print json.loads('{"key": "value"}')
