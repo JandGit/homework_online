@@ -2,7 +2,7 @@
 import time
 import json
 
-from cgi_log import CgiLog
+from cgi_libs.cgi_log import CgiLog
 
 # 限制最大页面闲置时间为半小时
 MAX_INACTIVE_TIME = 1800
@@ -64,6 +64,9 @@ def extract_req_params(req_param_str, require_params):
 
 
 def _json_loads_byteified(json_text):
+    """
+    这个函数对json.loads进行封装，使之生成的json对象的字符串型k、v都是str类型
+    """
     return _byteify(json.loads(json_text, object_hook=_byteify),
                     ignore_dicts=True)
 
@@ -87,5 +90,5 @@ def _byteify(data, ignore_dicts=False):
 
 
 if __name__ == "__main__":
-    print _json_loads_byteified('{"key": "value"}')
-    print json.loads('{"key": "value"}')
+    print _json_loads_byteified('{"k1": {"k2": "v"}}')
+    # print json.loads('{"key": "value"}')

@@ -1,6 +1,10 @@
 # coding=utf-8
 import json
 
+if __name__ == "__main__":
+    import sys
+    sys.path.insert(0, "/var/www/cgi-scripts")
+
 from cgi_libs.db_tool import DbTool
 from cgi_libs.cgi_log import CgiLog
 
@@ -139,7 +143,7 @@ def get_homeworks(t_id, status=None):
            "FROM homework, teacher WHERE "
            "homework.t_id=teacher.t_id AND "
            "teacher.t_id=\"%s\" AND homework.status LIKE \"%s%%\"" %
-           (t_id.encode("utf-8"), status))
+           (t_id, status))
 
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
@@ -358,10 +362,10 @@ def add_homework(t_id, hw_params):
     del hw_params["class_ids"]
 
     dbtool.start_transaction()
-    sql = ("INSERT INTO homework(title, date_start, date_end, t_id) VALUES "
-           "(\"%s\", \"%s\", \"%s\", \"%s\")" %
+    sql = ("INSERT INTO homework(title, date_start, date_end, t_id) VALUES"
+           "(\"%s\", \"%s\", \"%s\", \"%s\");" %
            (hw_params["title"], hw_params["date_start"],
-            hw_params["date_end"], t_id.encode("utf-8")))
+            hw_params["date_end"], t_id))
     if dbtool.raw_query(sql) is None:
         CgiLog.warning("insert failed")
         dbtool.destroy()
@@ -373,15 +377,10 @@ def add_homework(t_id, hw_params):
         dbtool.rollback()
         dbtool.destroy()
         return False
-    hw_id = ret_data[0]
+    hw_id = ret_data[0][0]
 
     for a_class_id in class_ids:
-        if not isinstance(a_class_id, int):
-            CgiLog.debug("class_id is not int, reject insert")
-            dbtool.rollback()
-            dbtool.destroy()
-            return False
-        sql = ("INSERT INTO homework_class(hw_id, class_id) VALUES (%s, %s)"
+        sql = ("INSERT INTO homework_class(hw_id, class_id) VALUES(%s, %s);"
                % (hw_id, a_class_id))
         if dbtool.raw_query(sql) is None:
             CgiLog.warning("insert failed")
@@ -453,7 +452,7 @@ def add_question_to_hw(hw_id, ques_id):
         return False
 
     sql = ("INSERT IGNORE INTO homework_question(hw_id, ques_id) " 
-           "VALUES (%s, %s)" % (hw_id, ques_id))
+           "VALUES (%s, %s)" % (str(hw_id), str(ques_id)))
     ret_data = dbtool.raw_query(sql)
     if ret_data is None or not dbtool.commit():
         CgiLog.warning("raw_query failed")
@@ -472,7 +471,7 @@ def del_question_from_hw(hw_id, ques_id):
         return False
 
     sql = ("DELETE FROM homework_question WHERE hw_id=%s AND ques_id=%s" %
-           (hw_id, ques_id))
+           (str(hw_id), str(ques_id)))
     ret_data = dbtool.raw_query(sql)
     if ret_data is None or not dbtool.commit():
         CgiLog.warning("raw_query failed")
@@ -481,3 +480,130 @@ def del_question_from_hw(hw_id, ques_id):
 
     dbtool.destroy()
     return True
+
+
+def _get_notified_users(dbtool, t_id, class_list):
+    assert isinstance(dbtool, DbTool)
+    assert isinstance(t_id, str)
+    assert isinstance(class_list, list)
+
+    user_names = []
+    for class_id in class_list:
+        sql = ("SELECT stu_id FROM student WHERE class_id='%s';" %
+               str(class_id))
+        ret_data = dbtool.raw_query(sql)
+        if ret_data is None:
+            CgiLog.warning("raw query failed")
+            return None
+        for (stu_id, ) in ret_data:
+            user_names.append(stu_id)
+
+    user_names.append(t_id)
+    return user_names
+
+
+def add_notice(t_id, title, content, class_list):
+    assert isinstance(t_id, str) and isinstance(title, str)
+    assert isinstance(content, str) and isinstance(class_list, list)
+
+    dbtool = DbTool()
+    if not dbtool.init():
+        CgiLog.warning("student_lib: dbtool init failed")
+        return False
+
+    notified_users = _get_notified_users(dbtool, t_id, class_list)
+    if notified_users is None:
+        dbtool.destroy()
+        return False
+
+    dbtool.commit()
+    dbtool.start_transaction()
+    sql = ("INSERT INTO notice(user_name, title, content) "
+           "VALUES('%s', '%s', '%s')" % (t_id, title, content))
+    if dbtool.raw_query(sql) is None:
+        CgiLog.debug("insert failed")
+        dbtool.rollback()
+        dbtool.destroy()
+        return False
+
+    ret_data = dbtool.raw_query("SELECT LAST_INSERT_ID()")
+    if ret_data is None or 0 == len(ret_data):
+        CgiLog.warning("get last insert id failed")
+        dbtool.rollback()
+        dbtool.destroy()
+        return False
+
+    notice_id = ret_data[0][0]
+    for user_name in notified_users:
+        sql = ("INSERT INTO notify(notice_id, user_name) "
+               "VALUES('%s', '%s');" % (notice_id, user_name))
+        if dbtool.raw_query(sql) is None:
+            CgiLog.debug("insert failed")
+            dbtool.rollback()
+            dbtool.destroy()
+            return False
+
+    if not dbtool.commit():
+        CgiLog.debug("commit failed")
+        dbtool.rollback()
+        dbtool.destroy()
+        return False
+
+    dbtool.destroy()
+    return True
+
+
+def del_notice(t_id, notice_id):
+    assert isinstance(t_id, str) and isinstance(notice_id, int)
+    dbtool = DbTool()
+    if not dbtool.init():
+        CgiLog.warning("student_lib: dbtool init failed")
+        return False
+
+    sql = ("DELETE FROM notice WHERE user_name='%s' AND "
+           "notice_id='%s';" % (t_id, notice_id))
+    if dbtool.raw_query(sql) is None or not dbtool.commit():
+        CgiLog.debug("delete failed")
+        dbtool.destroy()
+        return False
+
+    dbtool.destroy()
+    return True
+
+
+def _test_add_notice():
+    dbtool = DbTool()
+    assert dbtool.init()
+    assert add_notice("12345678", "test_title", "test_content", [123456])
+    sql = ("SELECT * FROM notice WHERE user_name='12345678' "
+           "AND title='test_title' AND content='test_content';")
+    ret_data = dbtool.raw_query(sql)
+    assert ret_data is not None and 1 == len(ret_data)
+    sql = ("DELETE FROM notice WHERE user_name='12345678' "
+           "AND title='test_title' AND content='test_content';")
+    dbtool.raw_query(sql)
+    dbtool.commit()
+    dbtool.destroy()
+
+
+def _test_del_notice():
+    dbtool = DbTool()
+    assert dbtool.init()
+    sql = ("INSERT IGNORE INTO notice(notice_id, user_name, title, content) "
+           "VALUES('123456', '123456', '123456', '123456');")
+    assert dbtool.raw_query(sql) is not None and dbtool.commit()
+
+    del_notice("123456", 123456)
+    dbtool.commit()
+    sql = "SELECT * FROM notice WHERE notice_id='123456';"
+    ret_data = dbtool.raw_query(sql)
+    assert ret_data is not None and 0 == len(ret_data)
+    dbtool.destroy()
+
+
+if __name__ == "__main__":
+    _test_add_notice()
+    _test_del_notice()
+
+
+

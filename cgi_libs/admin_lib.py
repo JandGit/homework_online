@@ -1,7 +1,7 @@
 # coding=utf-8
 
-from cgi_log import CgiLog
-from db_tool import DbTool
+from cgi_libs.cgi_log import CgiLog
+from cgi_libs.db_tool import DbTool
 
 
 def _gen_teacher_list(teacher_dict):

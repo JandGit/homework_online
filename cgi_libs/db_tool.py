@@ -3,7 +3,7 @@
 import mysql.connector
 from mysql.connector import errorcode
 
-from cgi_log import CgiLog
+from cgi_libs.cgi_log import CgiLog
 
 
 class DbTool(object):
