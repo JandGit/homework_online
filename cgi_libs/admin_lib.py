@@ -26,8 +26,8 @@ def search_teacher_list(search_str):
         CgiLog.warning("dbtool init failed")
         return None
 
-    sql = ("SELECT teacher.t_id, teacher.t_name, class.class_name FROM "
-           "teacher, teacher_class, class WHERE "
+    sql = ("SELECT teacher.t_id, teacher.t_name, class.class_id, "
+           "class.class_name FROM teacher, teacher_class, class WHERE "
            "teacher.t_id=teacher_class.t_id AND "
            "teacher_class.class_id=class.class_id AND " 
            "(teacher.t_id LIKE \"%s%%\" or "
@@ -41,15 +41,41 @@ def search_teacher_list(search_str):
 
     # {t_id, (t_id, t_name, [class_name])}，用于同时教多个班级的教师去重
     teachers_dict = {}
-    for (t_id, t_name, class_name) in ret_data:
+    for (t_id, t_name, class_id, class_name) in ret_data:
         if t_id in teachers_dict:
             unused_a, unused_b, class_list = teachers_dict[t_id]
-            class_list.append(class_name)
+            class_list.append({"class_id": class_id,
+                               "class_name": class_name})
         else:
-            teachers_dict[t_id] = (t_id, t_name, [class_name])
+            teachers_dict[t_id] = (t_id, t_name,
+                                   [{"class_id": class_id,
+                                     "class_name": class_name}])
 
     dbtool.destroy()
     return {"teachers": _gen_teacher_list(teachers_dict)}
+
+
+def get_class_info():
+    """
+    获取所有班级信息
+    :return: 成功返回data字段对应的数据，失败返回None
+    """
+    dbtool = DbTool()
+    if not dbtool.init():
+        CgiLog.warning("dbtool init failed")
+        return False
+    sql = "SELECT class_id, class_name FROM class;"
+    ret_data = dbtool.raw_query(sql)
+    dbtool.destroy()
+    if ret_data is None:
+        CgiLog.debug("query class data failed")
+        return None
+
+    class_list = []
+    for (class_id, class_name) in ret_data:
+        class_list.append({"class_id": class_id, "class_name": class_name})
+
+    return {"class_list": class_list}
 
 
 def add_teacher(t_id, t_name, class_list):
@@ -116,8 +142,8 @@ def modify_teacher(old_t_id, new_t_id, new_t_name, new_class_list):
             dbtool.destroy()
             return False
 
-    sql = ("UPDATE teacher SET t_id='%s' WHERE t_id='%s';"
-           % (new_t_id, old_t_id))
+    sql = ("UPDATE teacher SET t_id='%s', t_name='%s' WHERE t_id='%s';"
+           % (new_t_id, new_t_name, old_t_id))
     if dbtool.raw_query(sql) is None or not dbtool.commit():
         CgiLog.warning("exec sql failed:%s" % sql)
         dbtool.rollback()
@@ -134,6 +160,7 @@ def del_teacher(t_id):
     if not dbtool.init():
         CgiLog.warning("dbtool init failed")
         return False
+
     sql = "DELETE FROM teacher WHERE t_id='%s';" % t_id
     if dbtool.raw_query(sql) is None or not dbtool.commit():
         CgiLog.warning("exec sql failed:%s" % sql)
@@ -152,11 +179,11 @@ def search_stu_list(search_str):
         CgiLog.warning("dbtool init failed")
         return None
 
-    sql = ("SELECT stu_id, stu_name, class_name FROM "
+    sql = ("SELECT stu_id, stu_name, class.class_id, class.class_name FROM "
            "student, class WHERE "
            "student.class_id=class.class_id AND "
-           "(stu_id LIKE \"%s%%\" or "
-           "stu_name LIKE \"%s%%\");") % (search_str, search_str)
+           "(stu_id LIKE '%s%%' or "
+           "stu_name LIKE '%s%%');") % (search_str, search_str)
 
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
@@ -165,9 +192,10 @@ def search_stu_list(search_str):
         return None
 
     students = []
-    for (stu_id, stu_name, class_name) in ret_data:
+    for (stu_id, stu_name, class_id, class_name) in ret_data:
         students.append({"stu_id": stu_id, "stu_name": stu_name,
-                         "class_name": class_name})
+                         "class_info": {"class_id": class_id,
+                                        "class_name": class_name}})
     return {"students": students}
 
 
@@ -199,6 +227,7 @@ def del_stu(stu_id):
     if not dbtool.init():
         CgiLog.warning("dbtool init failed")
         return False
+
     sql = "DELETE FROM student WHERE stu_id='%s';" % stu_id
     if dbtool.raw_query(sql) is None or not dbtool.commit():
         CgiLog.warning("exec sql failed:%s" % sql)
@@ -218,6 +247,7 @@ def add_stu(stu_id, stu_name, class_id):
     if not dbtool.init():
         CgiLog.warning("dbtool init failed")
         return False
+
     sql = ("INSERT INTO student(stu_id, stu_name, class_id) "
            "VALUES('%s', '%s', %d);" % (stu_id, stu_name, class_id))
 

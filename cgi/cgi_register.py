@@ -452,6 +452,20 @@ def add_teacher():
     return gen_result_str(RESULT_CGI_SUCCESS, {})
 
 
+@app.route("/admin/class_info", methods=["get"])
+def get_class_info():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    class_list = admin_lib.get_class_info()
+    if class_list is None:
+        CgiLog.debug("get class info failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, class_list)
+
+
 @app.route("/admin/modify_teacher", methods=["post"])
 def modify_teacher():
     if not authenticate_request(request, session):
