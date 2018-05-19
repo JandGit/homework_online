@@ -14,7 +14,7 @@ def _deal_choice_ques(item_data):
     (ques_id, ques_content, ques_type, ques_extra_data) = item_data
     # 将ques_extra_data解析成预计的选择题附加字段格式
     try:
-        extra_data_json = json.loads(ques_extra_data.replace("\\\"", "\""))
+        extra_data_json = json.loads(ques_extra_data)
     except Exception:
         CgiLog.exception("json load error")
         return None
@@ -50,9 +50,9 @@ def get_questions(ques_id=None, ques_type=None, ques_content=None):
         ques_content = ""
 
     sql = ("SELECT ques_id, ques_content, ques_type, ques_extra_data FROM " 
-           "question WHERE ques_id LIKE \"%s%%\" AND ques_type LIKE \"%s%%\" "
-           "AND ques_content LIKE \"%s%%\"" % (ques_id, ques_type,
-                                               ques_content))
+           "question WHERE ques_id LIKE '%s%%' AND ques_type LIKE '%s%%' "
+           "AND ques_content LIKE '%s%%'" % (ques_id, ques_type,
+                                             ques_content))
 
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
@@ -85,7 +85,7 @@ def add_question(ques_dict):
 
     try:
         ques_extra_data = json.dumps(
-            ques_dict["answer"], ensure_ascii=False).replace("\"", "\\\"")
+            ques_dict["answer"], ensure_ascii=False)
     except Exception:
         CgiLog.exception("json dump failed, request_data:%s" %
                          str(ques_dict))
@@ -101,6 +101,22 @@ def add_question(ques_dict):
                           "ques_type": ques_dict["ques_type"],
                           "ques_extra_data": ques_extra_data}):
         CgiLog.warning("insert data to question failed")
+        dbtool.destroy()
+        return False
+
+    dbtool.destroy()
+    return True
+
+
+def del_question(ques_id):
+    assert isinstance(ques_id, int)
+    dbtool = DbTool()
+    if not dbtool.init():
+        CgiLog.debug("student_lib: dbtool init failed")
+        return False
+    sql = "DELETE FROM question WHERE ques_id='%s';" % ques_id
+    if dbtool.raw_query(sql) is None or not dbtool.commit():
+        CgiLog.debug("delete failed")
         dbtool.destroy()
         return False
 
@@ -142,7 +158,7 @@ def get_homeworks(t_id, status=None):
     sql = ("SELECT hw_id, status, title, date_start, date_end, t_name "
            "FROM homework, teacher WHERE "
            "homework.t_id=teacher.t_id AND "
-           "teacher.t_id=\"%s\" AND homework.status LIKE \"%s%%\"" %
+           "teacher.t_id='%s' AND homework.status LIKE '%s%%'" %
            (t_id, status))
 
     ret_data = dbtool.raw_query(sql)
@@ -250,8 +266,8 @@ def get_stu_homeworks(homework_type, class_id):
            "student, class WHERE stu_homework.hw_id=homework.hw_id AND "
            "stu_homework.stu_id=student.stu_id AND "
            "student.class_id=class.class_id AND "
-           "stu_homework.status LIKE \"%s%%\" AND "
-           "student.class_id LIKE \"%s%%\"" %
+           "stu_homework.status LIKE '%s%%' AND "
+           "student.class_id LIKE '%s%%'" %
            (homework_type, class_id))
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
@@ -290,7 +306,7 @@ def get_stu_homeworks_detail(stu_id, hw_id):
            "homework.t_id=teacher.t_id AND "
            "student.stu_id=stu_homework.stu_id AND "
            "homework.hw_id=stu_homework.hw_id AND "
-           "student.stu_id=\"%s\" AND homework.hw_id=%s" % (stu_id, hw_id))
+           "student.stu_id='%s' AND homework.hw_id=%s" % (stu_id, hw_id))
     ret_data = dbtool.raw_query(sql)
     if ret_data is None or 0 == len(ret_data):
         CgiLog.warning("query failed")
@@ -310,7 +326,7 @@ def get_stu_homeworks_detail(stu_id, hw_id):
            "stu_question.comment FROM "
            "question, stu_question WHERE "
            "question.ques_id=stu_question.ques_id AND "
-           "stu_question.stu_id=\"%s\" AND "
+           "stu_question.stu_id='%s' AND "
            "stu_question.hw_id=%s" % (stu_id, hw_id))
     ret_data = dbtool.raw_query(sql)
     if ret_data is None or 0 == len(ret_data):
@@ -335,8 +351,7 @@ def get_stu_homeworks_detail(stu_id, hw_id):
 
         if json_item is not None:
             try:
-                stu_answer_json_obj = json.loads(
-                    stu_answer.replace("\\\"", "\""))
+                stu_answer_json_obj = json.loads(stu_answer)
             except Exception:
                 stu_answer_json_obj = {}
             json_item["stu_answer"] = stu_answer_json_obj
@@ -363,7 +378,7 @@ def add_homework(t_id, hw_params):
 
     dbtool.start_transaction()
     sql = ("INSERT INTO homework(title, date_start, date_end, t_id) VALUES"
-           "(\"%s\", \"%s\", \"%s\", \"%s\");" %
+           "('%s', '%s', '%s', '%s');" %
            (hw_params["title"], hw_params["date_start"],
             hw_params["date_end"], t_id))
     if dbtool.raw_query(sql) is None:
@@ -407,7 +422,7 @@ def get_teach_class(t_id):
 
     sql = ("SELECT class.class_id, class.class_name FROM class, "
            "teacher_class WHERE class.class_id=teacher_class.class_id "
-           "AND t_id=\"%s\"" % t_id)
+           "AND t_id='%s'" % t_id)
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
         CgiLog.warning("raw_query failed")
@@ -419,7 +434,7 @@ def get_teach_class(t_id):
         class_info.append({"class_id": class_id, "class_name": class_name})
 
     dbtool.destroy()
-    return {"class": class_info}
+    return {"class_list": class_info}
 
 
 def get_teacher_info(t_id):
@@ -431,7 +446,7 @@ def get_teacher_info(t_id):
 
     sql = ("SELECT t_name, dept_name FROM teacher, department WHERE "
            "teacher.dept_id=department.dept_id AND "
-           "teacher.t_id=\"%s\"" % t_id)
+           "teacher.t_id='%s'" % t_id)
 
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:

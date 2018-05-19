@@ -14,7 +14,7 @@ def get_student_info(user_name):
         return None
 
     sql = ("SELECT stu_id, class_name, stu_name FROM student, class "
-           "WHERE student.class_id=class.class_id AND student.stu_id=\"%s\"" %
+           "WHERE student.class_id=class.class_id AND student.stu_id='%s';" %
            user_name)
     ret_data = dbtool.raw_query(sql)
 
@@ -38,9 +38,9 @@ def get_student_homework(user_name, homework_type):
 
     sql = ("SELECT homework.hw_id, homework.title, homework.date_start, "
            "homework.date_end, t_name FROM stu_homework, homework, teacher "
-           "WHERE stu_id=\"%s\" AND stu_homework.status=\"%s\" AND "
+           "WHERE stu_id='%s' AND stu_homework.status='%s' AND "
            "homework.hw_id=stu_homework.hw_id AND "
-           "homework.t_id=teacher.t_id" % (user_name, homework_type))
+           "homework.t_id=teacher.t_id;" % (user_name, homework_type))
 
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
@@ -58,8 +58,7 @@ def _get_free_resp_ques_data(item_data):
     (ques_id, ques_type, status, ques_content,
         ques_extra_data, stu_answer) = item_data
     try:
-        stu_answer = json.loads(
-            stu_answer.replace("\\\"",  "\""))
+        stu_answer = json.loads(stu_answer)
     except Exception:
         CgiLog.warning("ques_extra_data has wrong format")
         stu_answer = {"answer": ""}
@@ -75,14 +74,12 @@ def _get_choice_ques_data(item_data):
         ques_extra_data, stu_answer) = item_data
 
     try:
-        extra_json_of_ques = json.loads(
-            ques_extra_data.replace("\\\"",  "\""))
+        extra_json_of_ques = json.loads(ques_extra_data)
     except Exception:
         CgiLog.warning("ques_extra_data has wrong format")
         return None
     try:
-        stu_answer_json = json.loads(
-            stu_answer.replace("\\\"", "\""))
+        stu_answer_json = json.loads(stu_answer)
     except Exception:
         stu_answer_json = []
     if ("choices" not in extra_json_of_ques or
@@ -110,9 +107,9 @@ def commit_homework(stu_id, hw_id, finished_ques):
         return False
 
     dbtool.start_transaction()
-    ret = dbtool.raw_query("UPDATE stu_homework SET status=\"committed\", "
-                           "date_finished=NOW() WHERE stu_id=\"%s\" "
-                           "AND hw_id=%s" %
+    ret = dbtool.raw_query("UPDATE stu_homework SET status='committed', "
+                           "date_finished=NOW() WHERE stu_id='%s' "
+                           "AND hw_id='%s';" %
                            (stu_id, str(hw_id)))
     if ret is None:
         CgiLog.warning("insert into stu_homework failed")
@@ -123,14 +120,14 @@ def commit_homework(stu_id, hw_id, finished_ques):
         if (one_ques["ques_type"] == "single_choice" or
                 one_ques["ques_type"] == "multi_choice"):
             answer = json.dumps({"choice": [one_ques["stu_answer"]]},
-                                ensure_ascii=False).replace("\"", "\\\"")
+                                ensure_ascii=False)
         else:
             answer = json.dumps({"answer": [one_ques["stu_answer"]]},
-                                ensure_ascii=False).replace("\"", "\\\"")
+                                ensure_ascii=False)
         ques_id = one_ques["ques_id"]
         sql = ("UPDATE stu_question SET date_finished=NOW(), "
-               "status=\"committed\", answer=\"%s\" WHERE stu_id=\"%s\" "
-               "AND hw_id=%s AND ques_id=%s" %
+               "status='committed', answer='%s' WHERE stu_id='%s' "
+               "AND hw_id='%s' AND ques_id='%s';" %
                (answer, stu_id, str(hw_id), str(ques_id)))
         ret = dbtool.raw_query(sql)
         if ret is None:
@@ -160,7 +157,7 @@ def get_homework_detail(stu_id, hw_id):
     sql = ("SELECT question.ques_id, ques_type, status, ques_content, "
            "ques_extra_data, answer FROM stu_question, question WHERE "
            "question.ques_id=stu_question.ques_id AND "
-           "stu_id=\"%s\" AND hw_id=%s" % (stu_id, str(hw_id)))
+           "stu_id='%s' AND hw_id=%s" % (stu_id, str(hw_id)))
 
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:

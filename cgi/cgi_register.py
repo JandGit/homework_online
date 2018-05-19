@@ -240,9 +240,27 @@ def add_question():
 
     if not teacher_lib.add_question(params):
         CgiLog.warning("add question failed")
-        return gen_result_str(RESULT_SERVER_ERR, {})
+        return gen_result_str(RESULT_CGI_ERR, {})
     else:
         return gen_result_str(RESULT_CGI_SUCCESS, {})
+
+
+@app.route("/teacher/del_question", methods=["post"])
+def del_question():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    params = extract_req_params(request.data, {"ques_id": int})
+    if params is None:
+        CgiLog.warning("bad params:%s" % str(request.data))
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    if not teacher_lib.del_question(params["ques_id"]):
+        CgiLog.debug("delete question failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, {})
 
 
 @app.route("/teacher/homeworks", methods=["post"])
