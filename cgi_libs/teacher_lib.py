@@ -200,8 +200,9 @@ def get_homework_detail(hw_id):
                        "date_start": str(date_start),
                        "date_end": str(date_end)}
 
-    sql = ("SELECT class_id, class_name FROM homework_class, class WHERE "
-           "homework_class.class_id=class.class_id AND hw_id=%s" % hw_id)
+    sql = ("SELECT class.class_id, class_name FROM homework_class, class "
+           "WHERE homework_class.class_id=class.class_id AND "
+           "hw_id=%s" % hw_id)
     ret_data = dbtool.raw_query(sql)
     if ret_data is None or 0 == len(ret_data):
         CgiLog.warning("query failed")
@@ -215,7 +216,8 @@ def get_homework_detail(hw_id):
     homework_detail["class_ids"] = class_ids
     homework_detail["class_names"] = class_names
 
-    sql = ("SELECT ques_id, ques_content, ques_type, ques_extra_data FROM "
+    sql = ("SELECT question.ques_id, question.ques_content, "
+           "question.ques_type, question.ques_extra_data FROM "
            "question, homework_question WHERE "
            "question.ques_id=homework_question.ques_id AND "
            "homework_question.hw_id=%s" % hw_id)
@@ -268,6 +270,7 @@ def get_stu_homeworks(homework_type, class_id):
            "stu_homework.stu_id=student.stu_id AND "
            "student.class_id=class.class_id AND "
            "stu_homework.status LIKE '%s%%' AND "
+           "stu_homework.status!='unfinished' AND "
            "student.class_id LIKE '%s%%'" %
            (homework_type, class_id))
     ret_data = dbtool.raw_query(sql)
@@ -339,7 +342,8 @@ def get_stu_homeworks_detail(stu_id, hw_id):
     idx = 0
     for (ques_id, ques_content, ques_type, ques_extra_data,
             stu_answer, score, comment) in ret_data:
-        if ques_type == "single_choice" or ques_type == "multi_choice":
+        if (ques_type == "single_choice" or ques_type == "multi_choice"
+                or ques_type == "judge"):
             json_item = _deal_choice_ques((ques_id, ques_content,
                                            ques_type, ques_extra_data))
         elif ques_type == "free_resp":
@@ -353,8 +357,16 @@ def get_stu_homeworks_detail(stu_id, hw_id):
         if json_item is not None:
             try:
                 stu_answer_json_obj = json.loads(stu_answer, strict=False)
+                if (ques_type == "single_choice" or
+                        ques_type == "multi_choice" or
+                        ques_type == "judge"):
+                    stu_answer_json_obj = stu_answer_json_obj["choices"]
+                elif ques_type == "free_resp":
+                    stu_answer_json_obj = stu_answer_json_obj["answer"]
+                else:
+                    stu_answer_json_obj = []
             except Exception:
-                stu_answer_json_obj = {}
+                stu_answer_json_obj = []
             json_item["stu_answer"] = stu_answer_json_obj
             json_item["score"] = score
             json_item["comment"] = comment

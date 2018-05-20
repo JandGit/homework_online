@@ -287,7 +287,7 @@ def get_t_homeworks_detail():
     if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
 
-    homework_detail = teacher_lib.get_homework_detail(session["hw_id"])
+    homework_detail = teacher_lib.get_homework_detail(req_params["hw_id"])
     if homework_detail is None:
         CgiLog.warning("get homeworks failed")
         return gen_result_str(RESULT_CGI_ERR, {})
