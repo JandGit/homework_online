@@ -67,7 +67,7 @@ def _json_loads_byteified(json_text):
     """
     这个函数对json.loads进行封装，使之生成的json对象的字符串型k、v都是str类型
     """
-    return _byteify(json.loads(json_text, object_hook=_byteify),
+    return _byteify(json.loads(json_text, object_hook=_byteify, strict=False),
                     ignore_dicts=True)
 
 

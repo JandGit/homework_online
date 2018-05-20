@@ -14,7 +14,7 @@ def _deal_choice_ques(item_data):
     (ques_id, ques_content, ques_type, ques_extra_data) = item_data
     # 将ques_extra_data解析成预计的选择题附加字段格式
     try:
-        extra_data_json = json.loads(ques_extra_data)
+        extra_data_json = json.loads(ques_extra_data, strict=False)
     except Exception:
         CgiLog.exception("json load error")
         return None
@@ -63,7 +63,8 @@ def get_questions(ques_id=None, ques_type=None, ques_content=None):
     questions = []
     idx = 0
     for (ques_id, ques_content, ques_type, ques_extra_data) in ret_data:
-        if ques_type == "single_choice" or ques_type == "multi_choice":
+        if (ques_type == "single_choice" or ques_type == "multi_choice"
+                or ques_type == "judge"):
             json_item = _deal_choice_ques(ret_data[idx])
         elif ques_type == "free_resp":
             json_item = _deal_free_resp_ques(ret_data[idx])
@@ -351,7 +352,7 @@ def get_stu_homeworks_detail(stu_id, hw_id):
 
         if json_item is not None:
             try:
-                stu_answer_json_obj = json.loads(stu_answer)
+                stu_answer_json_obj = json.loads(stu_answer, strict=False)
             except Exception:
                 stu_answer_json_obj = {}
             json_item["stu_answer"] = stu_answer_json_obj

@@ -277,7 +277,7 @@ def get_t_homeworks():
     return gen_result_str(RESULT_CGI_SUCCESS, ret_data)
 
 
-@app.route("/teacher/homeworks_detail", methods=["post"])
+@app.route("/teacher/homeworks/homeworks_detail", methods=["post"])
 def get_t_homeworks_detail():
     if not authenticate_request(request, session):
         CgiLog.warning("cgi:authenticate_request failed")
@@ -286,6 +286,13 @@ def get_t_homeworks_detail():
                                     {"hw_id": int})
     if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    homework_detail = teacher_lib.get_homework_detail(session["hw_id"])
+    if homework_detail is None:
+        CgiLog.warning("get homeworks failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, homework_detail)
 
 
 @app.route("/teacher/homeworks/edit", methods=["post"])
