@@ -210,6 +210,29 @@ def get_stu_homeworks_detail():
     return gen_result_str(RESULT_CGI_SUCCESS, ret_data)
 
 
+@app.route("/teacher/stu_homeworks/check", methods=["post"])
+def check_stu_homework():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+    req_params = extract_req_params(request.data,
+                                    {"stu_id": str,
+                                     "hw_id": int,
+                                     "score": (int, float),
+                                     "comment": str})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    if not teacher_lib.check_stu_homework(req_params["stu_id"],
+                                          req_params["hw_id"],
+                                          req_params["score"],
+                                          req_params["comment"]):
+        CgiLog.warning("check student hw failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, {})
+
+
 @app.route("/teacher/questions", methods=["get"])
 def get_questions():
     if not authenticate_request(request, session):

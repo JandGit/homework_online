@@ -74,9 +74,9 @@ def get_notices(user_name):
     notices = []
     for (notice_id, title, date, author, content) in ret_data:
         notices.append({"notice_id": notice_id,
-                            "title": title,
-                            "date": str(date),
-                            "author": author,
-                            "content": content})
+                        "title": title,
+                        "date": str(date),
+                        "author": author,
+                        "content": content})
 
     return {"notices": notices}

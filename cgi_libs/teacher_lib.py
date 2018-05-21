@@ -222,7 +222,7 @@ def get_homework_detail(hw_id):
            "question.ques_id=homework_question.ques_id AND "
            "homework_question.hw_id=%s" % hw_id)
     ret_data = dbtool.raw_query(sql)
-    if ret_data is None or 0 == len(ret_data):
+    if ret_data is None:
         CgiLog.warning("query failed")
         dbtool.destroy()
         return None
@@ -230,7 +230,8 @@ def get_homework_detail(hw_id):
     questions = []
     idx = 0
     for (ques_id, ques_content, ques_type, ques_extra_data) in ret_data:
-        if ques_type == "single_choice" or ques_type == "multi_choice":
+        if (ques_type == "single_choice" or ques_type == "multi_choice"
+                or ques_type == "judge"):
             json_item = _deal_choice_ques(ret_data[idx])
         elif ques_type == "free_resp":
             json_item = _deal_free_resp_ques(ret_data[idx])
@@ -320,7 +321,7 @@ def get_stu_homeworks_detail(stu_id, hw_id):
         score, comment) = ret_data[0]
     homework_detail = {"hw_id": hw_id, "title": title, "status": status,
                        "date_start": str(date_start),
-                       "date_end": str(date_end),
+                       "date_end": str(date_end), "stu_id": stu_id,
                        "stu_name": stu_name, "class_name": class_name,
                        "score": score}
 
@@ -590,6 +591,25 @@ def del_notice(t_id, notice_id):
 
     sql = ("DELETE FROM notice WHERE user_name='%s' AND "
            "notice_id='%s';" % (t_id, notice_id))
+    if dbtool.raw_query(sql) is None or not dbtool.commit():
+        CgiLog.debug("delete failed")
+        dbtool.destroy()
+        return False
+
+    dbtool.destroy()
+    return True
+
+
+def check_stu_homework(stu_id, hw_id, score, comment):
+    assert isinstance(stu_id, str) and isinstance(score, (int, float))
+    assert isinstance(hw_id, int) and isinstance(comment, str)
+    dbtool = DbTool()
+    if not dbtool.init():
+        CgiLog.warning("student_lib: dbtool init failed")
+        return False
+    sql = ("UPDATE stu_homework SET score='%s', comment='%s', "
+           "status='checked' WHERE stu_id='%s' AND hw_id='%s';"
+           % (score, comment, stu_id, hw_id))
     if dbtool.raw_query(sql) is None or not dbtool.commit():
         CgiLog.debug("delete failed")
         dbtool.destroy()

@@ -186,8 +186,8 @@ def get_homework_detail(stu_id, hw_id):
         idx += 1
 
     sql = ("SELECT homework.title, t_name, stu_homework.status, "
-           "homework.date_start, homework.date_end FROM "
-           "homework, teacher, stu_homework "
+           "homework.date_start, homework.date_end, stu_homework.score, "
+           "stu_homework.comment FROM homework, teacher, stu_homework "
            "WHERE homework.hw_id='%s' AND stu_homework.stu_id='%s' AND "
            "stu_homework.hw_id=homework.hw_id "
            "AND homework.t_id=teacher.t_id;" % (hw_id, stu_id))
@@ -196,12 +196,13 @@ def get_homework_detail(stu_id, hw_id):
         CgiLog.warning("student_lib: raw query failed, sql:%s", sql)
         dbtool.destroy()
         return None
-    (title, author, status, date_start, date_end) = ret_data[0]
+    (title, author, status, date_start, date_end, score, comment) = ret_data[0]
 
     dbtool.destroy()
     return {"hw_id": hw_id, "title": title, "author": author,
             "status": status, "date_start": str(date_start),
-            "date_end": str(date_end), "questions": questions}
+            "date_end": str(date_end), "questions": questions,
+            "score": score, "comment": comment}
 
 
 if __name__ == "__main__":
