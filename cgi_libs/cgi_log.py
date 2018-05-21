@@ -1,16 +1,17 @@
 # coding=utf-8
-# import time
-# import threading
 import logging
 
-LOG_FILE = "/home/ljj/cgi_log.log"
-# G_LOG_FILE_OBJ = None
+LOG_DIR = "/home/ljj/"
+LOG_FILE = LOG_DIR + "cgi_log.log"
 
+# DEBUG表示LOG输出的最低级别为DEBUG
 logging.basicConfig(level=logging.DEBUG,
                     format="%(asctime)s %(filename)s[line:%(lineno)d] "
                            "%(levelname)s %(message)s", filename=LOG_FILE)
 
 CgiLog = logging
+
+
 
 # class CgiLog(object):
 #     @staticmethod
