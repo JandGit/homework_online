@@ -16,7 +16,7 @@ def authenticate_user(user_name, password):
                其他值表示服务器异常。user_type在验证成功时会赋值为用户类型，如"admin"、"student"等
     """
     if not isinstance(user_name, str) or not isinstance(password, str):
-        CgiLog.debug("user:bad params")
+        CgiLog.info("user:bad params")
         return RET_DB_TOOL_ERR, ""
 
     dbtool = DbTool()
@@ -30,17 +30,17 @@ def authenticate_user(user_name, password):
     if ret_data is None:
         return RET_DB_TOOL_ERR, ""
     if 0 == len(ret_data):
-        CgiLog.debug("user:find no user")
+        CgiLog.info("user:find no user")
         return RET_NO_SUCH_USER, ""
 
     expected_ret_field_len = 3
     if len(ret_data[0]) != expected_ret_field_len:
-        CgiLog.debug("user:db return wrong field count")
+        CgiLog.info("user:db return wrong field count")
         return RET_DB_TOOL_ERR, ""
 
     (ret_user_name, ret_password, ret_user_type) = ret_data[0]
     if ret_user_name != user_name or ret_password != password:
-        CgiLog.debug("user:password incorrect")
+        CgiLog.info("user:password incorrect")
         return RET_PWD_ERR, ""
 
     return 0, ret_user_type
@@ -53,11 +53,11 @@ def get_notices(user_name):
     :return: 返回dict存放公告，为data字段的内容。返回None表示获取失败。
     """
     if not isinstance(user_name, str):
-        CgiLog.debug("user: user_name is not str")
+        CgiLog.info("user: user_name is not str")
         return None
     dbtool = DbTool()
     if not dbtool.init():
-        CgiLog.debug("user: dbtool init failed while get_notices")
+        CgiLog.info("user: dbtool init failed while get_notices")
         return None
 
     sql = ("SELECT notice.notice_id, notice.title, notice.date, "
@@ -68,7 +68,7 @@ def get_notices(user_name):
     dbtool.destroy()
 
     if ret_data is None:
-        CgiLog.debug("user: dbtool error while get_notices")
+        CgiLog.info("user: dbtool error while get_notices")
         return None
 
     notices = []

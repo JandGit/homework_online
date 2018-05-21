@@ -38,7 +38,7 @@ def _deal_free_resp_ques(item_data):
 def get_questions(ques_id=None, ques_type=None, ques_content=None):
     dbtool = DbTool()
     if not dbtool.init():
-        CgiLog.debug("student_lib: dbtool init failed")
+        CgiLog.info("student_lib: dbtool init failed")
         return None
 
     # 这样处理是为了使用sql语句的LIKE匹配时，None字段可以无条件匹配
@@ -94,7 +94,7 @@ def add_question(ques_dict):
 
     dbtool = DbTool()
     if not dbtool.init():
-        CgiLog.debug("student_lib: dbtool init failed")
+        CgiLog.info("student_lib: dbtool init failed")
         return False
 
     if not dbtool.insert("question",
@@ -113,11 +113,11 @@ def del_question(ques_id):
     assert isinstance(ques_id, int)
     dbtool = DbTool()
     if not dbtool.init():
-        CgiLog.debug("student_lib: dbtool init failed")
+        CgiLog.info("student_lib: dbtool init failed")
         return False
     sql = "DELETE FROM question WHERE ques_id='%s';" % ques_id
     if dbtool.raw_query(sql) is None or not dbtool.commit():
-        CgiLog.debug("delete failed")
+        CgiLog.info("delete failed")
         dbtool.destroy()
         return False
 
@@ -492,6 +492,23 @@ def add_question_to_hw(hw_id, ques_id):
     return True
 
 
+def publish_homework(hw_id):
+    assert isinstance(hw_id, int)
+    dbtool = DbTool()
+    if not dbtool.init():
+        CgiLog.warning("student_lib: dbtool init failed")
+        return False
+    sql = ("UPDATE homework SET status='published' WHERE hw_id='%s';" % hw_id)
+    if dbtool.raw_query(sql) is None or not dbtool.commit():
+        CgiLog.warning("update failed")
+        dbtool.destroy()
+        return False
+
+    dbtool.destroy()
+    return True
+
+
+
 def del_question_from_hw(hw_id, ques_id):
     assert isinstance(hw_id, int) and isinstance(ques_id, int)
     dbtool = DbTool()
@@ -550,7 +567,7 @@ def add_notice(t_id, title, content, class_list):
     sql = ("INSERT INTO notice(user_name, title, content) "
            "VALUES('%s', '%s', '%s')" % (t_id, title, content))
     if dbtool.raw_query(sql) is None:
-        CgiLog.debug("insert failed")
+        CgiLog.info("insert failed")
         dbtool.rollback()
         dbtool.destroy()
         return False
@@ -567,13 +584,13 @@ def add_notice(t_id, title, content, class_list):
         sql = ("INSERT INTO notify(notice_id, user_name) "
                "VALUES('%s', '%s');" % (notice_id, user_name))
         if dbtool.raw_query(sql) is None:
-            CgiLog.debug("insert failed")
+            CgiLog.info("insert failed")
             dbtool.rollback()
             dbtool.destroy()
             return False
 
     if not dbtool.commit():
-        CgiLog.debug("commit failed")
+        CgiLog.info("commit failed")
         dbtool.rollback()
         dbtool.destroy()
         return False
@@ -592,7 +609,7 @@ def del_notice(t_id, notice_id):
     sql = ("DELETE FROM notice WHERE user_name='%s' AND "
            "notice_id='%s';" % (t_id, notice_id))
     if dbtool.raw_query(sql) is None or not dbtool.commit():
-        CgiLog.debug("delete failed")
+        CgiLog.info("delete failed")
         dbtool.destroy()
         return False
 
@@ -611,7 +628,7 @@ def check_stu_homework(stu_id, hw_id, score, comment):
            "status='checked' WHERE stu_id='%s' AND hw_id='%s';"
            % (score, comment, stu_id, hw_id))
     if dbtool.raw_query(sql) is None or not dbtool.commit():
-        CgiLog.debug("delete failed")
+        CgiLog.info("delete failed")
         dbtool.destroy()
         return False
 

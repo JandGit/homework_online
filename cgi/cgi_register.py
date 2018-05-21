@@ -300,6 +300,24 @@ def get_t_homeworks():
     return gen_result_str(RESULT_CGI_SUCCESS, ret_data)
 
 
+@app.route("/teacher/homeworks/publish", methods=["post"])
+def publish_homework():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    params = extract_req_params(request.data, {"hw_id": int})
+    if params is None:
+        CgiLog.warning("bad params:%s" % str(request.data))
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+
+    if not teacher_lib.publish_homework(params["hw_id"]):
+        CgiLog.warning("publish homeworks failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, {})
+
+
 @app.route("/teacher/homeworks/homeworks_detail", methods=["post"])
 def get_t_homeworks_detail():
     if not authenticate_request(request, session):
@@ -512,6 +530,59 @@ def get_class_info():
         return gen_result_str(RESULT_CGI_ERR, {})
 
     return gen_result_str(RESULT_CGI_SUCCESS, class_list)
+
+
+@app.route("/admin/del_class", methods=["post"])
+def del_class():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"class_id": int})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+    if not admin_lib.del_class(req_params["class_id"]):
+        CgiLog.info("delete failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, {})
+
+
+@app.route("/admin/add_class", methods=["post"])
+def add_class():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"class_name": str})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+    if not admin_lib.add_class(req_params["class_name"]):
+        CgiLog.info("add class failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, {})
+
+
+@app.route("/admin/modify_class", methods=["post"])
+def modify_class():
+    if not authenticate_request(request, session):
+        CgiLog.warning("cgi:authenticate_request failed")
+        return gen_result_str(RESULT_SESS_EXPIRE, {})
+
+    req_params = extract_req_params(request.data,
+                                    {"class_id": int,
+                                     "class_name": str})
+    if req_params is None:
+        return gen_result_str(RESULT_BAD_PARAMS, {})
+    if not admin_lib.modify_class(req_params["class_id"],
+                                  req_params["class_name"]):
+        CgiLog.info("modify failed")
+        return gen_result_str(RESULT_CGI_ERR, {})
+
+    return gen_result_str(RESULT_CGI_SUCCESS, {})
 
 
 @app.route("/admin/modify_teacher", methods=["post"])

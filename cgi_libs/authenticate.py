@@ -16,17 +16,17 @@ def authenticate_request(request, session):
     :return: True表示用户有效，False表示用户无效，用户无效时应当重新登录
     """
     if "user_name" not in session or "login_ip" not in session:
-        CgiLog.debug("user_name or login_ip not in session")
+        CgiLog.info("user_name or login_ip not in session")
         return False
     if session["login_ip"] != request.remote_addr:
-        CgiLog.debug("current ip not equal to last login_ip, cur=%s, last=%s" %
+        CgiLog.info("current ip not equal to last login_ip, cur=%s, last=%s" %
                      (request.remote_addr, session["login_ip"]))
         return False
     if "last_act_time" not in session:
-        CgiLog.debug("last_act_time not in session")
+        CgiLog.info("last_act_time not in session")
         return False
     if time.time() - session["last_act_time"] > MAX_INACTIVE_TIME:
-        CgiLog.debug("user session timeout")
+        CgiLog.info("user session timeout")
         return False
 
     return True
@@ -52,10 +52,10 @@ def extract_req_params(req_param_str, require_params):
 
     for require_key, require_type in require_params.iteritems():
         if require_key not in req_json_obj:
-            CgiLog.debug("key %s not in request" % require_key)
+            CgiLog.info("key %s not in request" % require_key)
             return None
         if not isinstance(req_json_obj[require_key], require_type):
-            CgiLog.debug("key %s is type %s, require %s" %
+            CgiLog.info("key %s is type %s, require %s" %
                          (require_key, type(req_json_obj[require_key]),
                           require_type))
             return None

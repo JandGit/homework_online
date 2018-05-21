@@ -10,7 +10,7 @@ def get_student_info(user_name):
     assert isinstance(user_name, str)
     dbtool = DbTool()
     if not dbtool.init():
-        CgiLog.debug("student_lib: dbtool init failed while get_student_info")
+        CgiLog.info("student_lib: dbtool init failed while get_student_info")
         return None
 
     sql = ("SELECT stu_id, class_name, stu_name FROM student, class "
@@ -19,7 +19,7 @@ def get_student_info(user_name):
     ret_data = dbtool.raw_query(sql)
 
     if ret_data is None:
-        CgiLog.debug("student_lib: raw query failed while get_student_info")
+        CgiLog.info("student_lib: raw query failed while get_student_info")
         dbtool.destroy()
         return None
 

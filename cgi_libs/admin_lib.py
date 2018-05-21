@@ -64,18 +64,82 @@ def get_class_info():
     if not dbtool.init():
         CgiLog.warning("dbtool init failed")
         return False
-    sql = "SELECT class_id, class_name FROM class;"
+    sql = "SELECT class_id, class_name, stu_cnt, teacher_cnt FROM class;"
     ret_data = dbtool.raw_query(sql)
     dbtool.destroy()
     if ret_data is None:
-        CgiLog.debug("query class data failed")
+        CgiLog.info("query class data failed")
         return None
 
     class_list = []
-    for (class_id, class_name) in ret_data:
-        class_list.append({"class_id": class_id, "class_name": class_name})
+    for (class_id, class_name, stu_cnt, teacher_cnt) in ret_data:
+        class_list.append({"class_id": class_id, "class_name": class_name,
+                           "stu_cnt": stu_cnt, "teacher_cnt": teacher_cnt})
 
     return {"class_list": class_list}
+
+
+def add_class(class_name):
+    assert isinstance(class_name, str)
+    dbtool = DbTool()
+    if not dbtool.init():
+        CgiLog.warning("dbtool init failed")
+        return False
+    sql = "INSERT INTO class(class_name) VALUES('%s');" % class_name
+    if dbtool.raw_query(sql) is None or not dbtool.commit():
+        CgiLog.info("insert failed")
+        dbtool.destroy()
+        return False
+
+    dbtool.destroy()
+    return True
+
+
+def modify_class(class_id, new_class_name):
+    assert isinstance(class_id, int)
+    assert isinstance(new_class_name, str)
+    dbtool = DbTool()
+    if not dbtool.init():
+        CgiLog.warning("dbtool init failed")
+        return False
+    sql = "UPDATE class SET class_name='%s' WHERE class_id='%s';" % class_id
+    if dbtool.raw_query(sql) is None or not dbtool.commit():
+        CgiLog.info("update failed")
+        dbtool.destroy()
+        return False
+
+    dbtool.destroy()
+    return True
+
+
+def del_class(class_id):
+    assert isinstance(class_id, int)
+    dbtool = DbTool()
+    if not dbtool.init():
+        CgiLog.warning("dbtool init failed")
+        return False
+    sql = ("SELECT stu_cnt, teacher_cnt FROM class WHERE "
+           "class_id='%s';" % class_id)
+    ret_data = dbtool.raw_query(sql)
+    if ret_data is None:
+        CgiLog.info("query failed")
+        dbtool.destroy()
+        return False
+    (stu_cnt, teacher_cnt) = ret_data[0]
+    if stu_cnt > 0 or teacher_cnt > 0:
+        CgiLog.debug("there is still student or teacher in class, "
+                     "reject delete option")
+        dbtool.destroy()
+        return False
+
+    sql = "DELETE FROM class WHERE class_id='%s';" % class_id
+    if dbtool.raw_query(sql) is None or not dbtool.commit():
+        CgiLog.info("update failed")
+        dbtool.destroy()
+        return False
+
+    dbtool.destroy()
+    return True
 
 
 def add_teacher(t_id, t_name, class_list):

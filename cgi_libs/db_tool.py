@@ -76,7 +76,7 @@ class DbTool(object):
             cursor = self.m_db_connector.cursor()
             cursor.execute(sql)
         except mysql.connector.Error as err:
-            CgiLog.debug("dbtool:err while raw_query:%s, err:%s" %
+            CgiLog.info("dbtool:err while raw_query:%s, err:%s" %
                          (sql, str(err)))
             if cursor is not None:
                 cursor.close()
@@ -121,7 +121,7 @@ class DbTool(object):
             cursor.execute(sql, column_values)
             self.m_db_connector.commit()
         except mysql.connector.Error as err:
-            CgiLog.debug("dbtool:err while insert:%s, err:%s" %
+            CgiLog.info("dbtool:err while insert:%s, err:%s" %
                          (sql, str(err)))
             if cursor is not None:
                 cursor.close()
@@ -144,7 +144,7 @@ class DbTool(object):
             cursor = self.m_db_connector.cursor()
             cursor.execute(sql)
         except mysql.connector.Error as err:
-            CgiLog.debug("dbtool:err while query:%s, err:%s" %
+            CgiLog.info("dbtool:err while query:%s, err:%s" %
                          (sql, str(err)))
             if cursor is not None:
                 cursor.close()
@@ -179,7 +179,7 @@ class DbTool(object):
             cursor.execute(sql)
             self.m_db_connector.commit()
         except mysql.connector.Error as err:
-            CgiLog.debug("dbtool:err while update:%s, err:%s" %
+            CgiLog.info("dbtool:err while update:%s, err:%s" %
                          (sql, str(err)))
             if cursor is not None:
                 cursor.close()
