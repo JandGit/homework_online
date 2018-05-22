@@ -8,25 +8,32 @@ from cgi_libs.cgi_log import CgiLog
 MAX_INACTIVE_TIME = 1800
 
 
-def authenticate_request(request, session):
+def authenticate_request(request, session, req_user_type):
     """
     验证用户是否有效，安全性校验
     :param request: flask的全局变量
     :param session: flask的全局变量
     :return: True表示用户有效，False表示用户无效，用户无效时应当重新登录
     """
-    if "user_name" not in session or "login_ip" not in session:
-        CgiLog.info("user_name or login_ip not in session")
+    if ("user_name" not in session or "login_ip" not in session
+            or "user_type" not in session):
+        CgiLog.info("user_name or login_ip or user_type not in session")
         return False
     if session["login_ip"] != request.remote_addr:
         CgiLog.info("current ip not equal to last login_ip, cur=%s, last=%s" %
-                     (request.remote_addr, session["login_ip"]))
+                    (request.remote_addr, session["login_ip"]))
         return False
     if "last_act_time" not in session:
         CgiLog.info("last_act_time not in session")
         return False
     if time.time() - session["last_act_time"] > MAX_INACTIVE_TIME:
         CgiLog.info("user session timeout")
+        return False
+
+    if session["user_type"] != req_user_type:
+        CgiLog.info("user type is not correct, require type:%s, "
+                    "current type:%s" % (req_user_type,
+                                         session["user_type"]))
         return False
 
     return True

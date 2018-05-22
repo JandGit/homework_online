@@ -249,9 +249,9 @@ def get_homework_detail(hw_id):
     return homework_detail
 
 
-def get_stu_homeworks(homework_type, class_id):
+def get_stu_homeworks(homework_type, class_id, t_id):
     assert isinstance(homework_type, str)
-    assert isinstance(class_id, int)
+    assert isinstance(class_id, int) and isinstance(t_id, str)
     if homework_type == "all":
         homework_type = ""
     elif homework_type == "unchecked":
@@ -266,14 +266,14 @@ def get_stu_homeworks(homework_type, class_id):
 
     sql = ("SELECT homework.hw_id, homework.title, homework.date_start, "
            "homework.date_end, student.stu_id, student.stu_name, "
-           "stu_homework.date_finished, class_name FROM stu_homework, homework, "
-           "student, class WHERE stu_homework.hw_id=homework.hw_id AND "
-           "stu_homework.stu_id=student.stu_id AND "
+           "stu_homework.date_finished, class_name FROM stu_homework, "
+           "homework, student, class WHERE stu_homework.hw_id=homework.hw_id "
+           "AND stu_homework.stu_id=student.stu_id AND "
            "student.class_id=class.class_id AND "
            "stu_homework.status LIKE '%s%%' AND "
            "stu_homework.status!='unfinished' AND "
-           "student.class_id LIKE '%s%%'" %
-           (homework_type, class_id))
+           "student.class_id LIKE '%s%%' AND homework.t_id='%s';" %
+           (homework_type, class_id, t_id))
     ret_data = dbtool.raw_query(sql)
     if ret_data is None:
         CgiLog.warning("query failed")
@@ -311,7 +311,7 @@ def get_stu_homeworks_detail(stu_id, hw_id):
            "homework.t_id=teacher.t_id AND "
            "student.stu_id=stu_homework.stu_id AND "
            "homework.hw_id=stu_homework.hw_id AND "
-           "student.stu_id='%s' AND homework.hw_id=%s" % (stu_id, hw_id))
+           "student.stu_id='%s' AND homework.hw_id='%s';" % (stu_id, hw_id))
     ret_data = dbtool.raw_query(sql)
     if ret_data is None or 0 == len(ret_data):
         CgiLog.warning("query failed")
@@ -323,7 +323,7 @@ def get_stu_homeworks_detail(stu_id, hw_id):
                        "date_start": str(date_start),
                        "date_end": str(date_end), "stu_id": stu_id,
                        "stu_name": stu_name, "class_name": class_name,
-                       "score": score}
+                       "score": score, "comment": comment}
 
     sql = ("SELECT question.ques_id, question.ques_content, "
            "question.ques_type, question.ques_extra_data, "

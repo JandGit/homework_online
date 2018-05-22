@@ -1,10 +1,12 @@
 # coding=utf-8
 import json
 import time
+import functools
 
 from flask import Flask
 from flask import request
 from flask import session
+from flask import redirect
 
 from cgi_libs.cgi_log import CgiLog
 from cgi_libs.authenticate import authenticate_request
@@ -26,9 +28,23 @@ RESULT_CGI_SUCCESS = 0              # 成功
 RESULT_SESS_EXPIRE = 1              # 登录信息过期
 RESULT_USERNAME_NOT_EXIST = 100     # 登录用户名不存在
 RESULT_PWD_NOT_RIGHT = 101          # 登录密码错误
-RESULT_SERVER_ERR = 102             # 服务器内部错误
-RESULT_BAD_PARAMS = 103
-RESULT_CGI_ERR = 300
+RESULT_SERVER_ERR = 201             # 服务器内部错误
+RESULT_BAD_PARAMS = 202             # CGI调用参数出错
+RESULT_CGI_ERR = 203                # CGI程序出错
+
+
+def auth_user(req_user_type):
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kw):
+            if not authenticate_request(request, session, req_user_type):
+                CgiLog.warning("authenticate_request failed")
+                return gen_result_str(RESULT_SESS_EXPIRE, {})
+            else:
+                return func(*args, **kw)
+        return wrapper
+
+    return decorator
 
 
 def gen_result_str(result, data):
@@ -63,6 +79,7 @@ def login():
         return gen_result_str(err_code, {})
 
     session["user_name"] = user_name
+    session["user_type"] = user_type
     session["login_ip"] = request.remote_addr
     session["last_act_time"] = time.time()
     return gen_result_str(RESULT_CGI_SUCCESS,
@@ -70,11 +87,8 @@ def login():
 
 
 @app.route("/student/student_info", methods=["post"])
+@auth_user("student")
 def get_student_info():
-    if not authenticate_request(request, session):
-        CgiLog.warning("authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     data = student_lib.get_student_info(session["user_name"])
     if data is None:
         CgiLog.warning("cgi: get_student_info error")
@@ -93,11 +107,8 @@ def get_student_info():
 
 
 @app.route("/student/notices", methods=["post"])
+@auth_user("student")
 def get_student_notices():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     ret_notices = user.get_notices(session["user_name"])
     if ret_notices is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
@@ -106,10 +117,8 @@ def get_student_notices():
 
 
 @app.route("/student/homeworks", methods=["post"])
+@auth_user("student")
 def get_student_homeworks():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data,
                                     {"homework_type": str})
     if req_params is None:
@@ -133,10 +142,8 @@ def get_student_homeworks():
 
 
 @app.route("/student/commit_homework", methods=["post"])
+@auth_user("student")
 def commit_homework():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data,
                                     {"questions": list, "hw_id": int})
     if req_params is None:
@@ -153,10 +160,8 @@ def commit_homework():
 
 
 @app.route("/student/homework_detail", methods=["post"])
+@auth_user("student")
 def get_homework_detail():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data, {"hw_id": int})
     if req_params is None:
         return gen_result_str(RESULT_BAD_PARAMS, {})
@@ -171,10 +176,8 @@ def get_homework_detail():
 
 
 @app.route("/teacher/stu_homeworks", methods=["post"])
+@auth_user("teacher")
 def get_stu_homeworks():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data,
                                     {"homework_type": str,
                                      "class_id": int})
@@ -182,7 +185,7 @@ def get_stu_homeworks():
         return gen_result_str(RESULT_BAD_PARAMS, {})
 
     ret_data = teacher_lib.get_stu_homeworks(
-        req_params["homework_type"], req_params["class_id"])
+        req_params["homework_type"], req_params["class_id"], session["user_name"])
     if ret_data is None:
         CgiLog.warning("get student homeworks failed")
         return gen_result_str(RESULT_CGI_ERR, {})
@@ -191,10 +194,8 @@ def get_stu_homeworks():
 
 
 @app.route("/teacher/stu_homeworks_detail", methods=["post"])
+@auth_user("teacher")
 def get_stu_homeworks_detail():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data,
                                     {"stu_id": str,
                                      "hw_id": int})
@@ -211,10 +212,8 @@ def get_stu_homeworks_detail():
 
 
 @app.route("/teacher/stu_homeworks/check", methods=["post"])
+@auth_user("teacher")
 def check_stu_homework():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data,
                                     {"stu_id": str,
                                      "hw_id": int,
@@ -234,11 +233,8 @@ def check_stu_homework():
 
 
 @app.route("/teacher/questions", methods=["get"])
+@auth_user("teacher")
 def get_questions():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     ret_data = teacher_lib.get_questions()
     if ret_data is None:
         CgiLog.warning("stu_homeworks_detail failed")
@@ -248,11 +244,8 @@ def get_questions():
 
 
 @app.route("/teacher/questions", methods=["post"])
+@auth_user("teacher")
 def add_question():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     params = extract_req_params(request.data,
                                 {"ques_content": str,
                                  "ques_type": str,
@@ -269,11 +262,8 @@ def add_question():
 
 
 @app.route("/teacher/del_question", methods=["post"])
+@auth_user("teacher")
 def del_question():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     params = extract_req_params(request.data, {"ques_id": int})
     if params is None:
         CgiLog.warning("bad params:%s" % str(request.data))
@@ -287,11 +277,8 @@ def del_question():
 
 
 @app.route("/teacher/homeworks", methods=["post"])
+@auth_user("teacher")
 def get_t_homeworks():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     ret_data = teacher_lib.get_homeworks(session["user_name"])
     if ret_data is None:
         CgiLog.warning("get homeworks failed")
@@ -301,11 +288,8 @@ def get_t_homeworks():
 
 
 @app.route("/teacher/homeworks/publish", methods=["post"])
+@auth_user("teacher")
 def publish_homework():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     params = extract_req_params(request.data, {"hw_id": int})
     if params is None:
         CgiLog.warning("bad params:%s" % str(request.data))
@@ -319,10 +303,8 @@ def publish_homework():
 
 
 @app.route("/teacher/homeworks/homeworks_detail", methods=["post"])
+@auth_user("teacher")
 def get_t_homeworks_detail():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data,
                                     {"hw_id": int})
     if req_params is None:
@@ -337,10 +319,8 @@ def get_t_homeworks_detail():
 
 
 @app.route("/teacher/homeworks/edit", methods=["post"])
+@auth_user("teacher")
 def add_t_homeworks():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
     req_params = extract_req_params(request.data,
                                     {"title": str,
                                      "date_start": str,
@@ -356,11 +336,8 @@ def add_t_homeworks():
 
 
 @app.route("/teacher/teach_class", methods=["get"])
+@auth_user("teacher")
 def get_teach_class():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     class_info = teacher_lib.get_teach_class(session["user_name"])
     if class_info is None:
         CgiLog.warning("get teach class failed")
@@ -370,11 +347,8 @@ def get_teach_class():
 
 
 @app.route("/teacher/teacher_info", methods=["get"])
+@auth_user("teacher")
 def get_teacher_info():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     teacher_info = teacher_lib.get_teacher_info(session["user_name"])
     if teacher_info is None:
         CgiLog.warning("get teach class failed")
@@ -384,11 +358,8 @@ def get_teacher_info():
 
 
 @app.route("/teacher/homeworks/add_question", methods=["post"])
+@auth_user("teacher")
 def add_question_to_hw():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"hw_id": int, "ques_id": int})
     if req_params is None:
@@ -403,11 +374,8 @@ def add_question_to_hw():
 
 
 @app.route("/teacher/homeworks/del_question", methods=["post"])
+@auth_user("teacher")
 def del_question_from_hw():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"hw_id": int, "ques_id": int})
     if req_params is None:
@@ -422,11 +390,8 @@ def del_question_from_hw():
 
 
 @app.route("/teacher/get_notices", methods=["get"])
+@auth_user("teacher")
 def teacher_get_notices():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     ret_notices = user.get_notices(session["user_name"])
     if ret_notices is None:
         CgiLog.debug("get notices failed")
@@ -436,11 +401,8 @@ def teacher_get_notices():
 
 
 @app.route("/teacher/add_notice", methods=["post"])
+@auth_user("teacher")
 def teacher_add_notices():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"title": str,
                                      "content": str,
@@ -461,11 +423,8 @@ def teacher_add_notices():
 
 
 @app.route("/teacher/del_notice", methods=["post"])
+@auth_user("teacher")
 def teacher_del_notice():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"notice_id": int})
 
@@ -478,11 +437,8 @@ def teacher_del_notice():
 
 
 @app.route("/admin/teacher_list", methods=["post"])
+@auth_user("admin")
 def search_teacher_list():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"search": str})
     if req_params is None:
@@ -497,11 +453,8 @@ def search_teacher_list():
 
 
 @app.route("/admin/add_teacher", methods=["post"])
+@auth_user("admin")
 def add_teacher():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"t_id": str,
                                      "t_name": str,
@@ -519,11 +472,8 @@ def add_teacher():
 
 
 @app.route("/admin/class_info", methods=["get"])
+@auth_user("admin")
 def get_class_info():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     class_list = admin_lib.get_class_info()
     if class_list is None:
         CgiLog.debug("get class info failed")
@@ -533,11 +483,8 @@ def get_class_info():
 
 
 @app.route("/admin/del_class", methods=["post"])
+@auth_user("admin")
 def del_class():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"class_id": int})
     if req_params is None:
@@ -550,11 +497,8 @@ def del_class():
 
 
 @app.route("/admin/add_class", methods=["post"])
+@auth_user("admin")
 def add_class():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"class_name": str})
     if req_params is None:
@@ -567,11 +511,8 @@ def add_class():
 
 
 @app.route("/admin/modify_class", methods=["post"])
+@auth_user("admin")
 def modify_class():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"class_id": int,
                                      "class_name": str})
@@ -586,11 +527,8 @@ def modify_class():
 
 
 @app.route("/admin/modify_teacher", methods=["post"])
+@auth_user("admin")
 def modify_teacher():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"old_t_id": str,
                                      "new_t_id": str,
@@ -611,11 +549,8 @@ def modify_teacher():
 
 
 @app.route("/admin/del_teacher", methods=["post"])
+@auth_user("admin")
 def del_teacher():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"t_id": str})
     if req_params is None:
@@ -630,11 +565,8 @@ def del_teacher():
 
 
 @app.route("/admin/stu_list", methods=["post"])
+@auth_user("admin")
 def search_stu_list():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"search": str})
     if req_params is None:
@@ -649,11 +581,8 @@ def search_stu_list():
 
 
 @app.route("/admin/modify_stu", methods=["post"])
+@auth_user("admin")
 def modify_stu():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"old_stu_id": str,
                                      "new_stu_id": str,
@@ -674,11 +603,8 @@ def modify_stu():
 
 
 @app.route("/admin/del_stu", methods=["post"])
+@auth_user("admin")
 def del_stu():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"stu_id": str})
     if req_params is None:
@@ -693,11 +619,8 @@ def del_stu():
 
 
 @app.route("/admin/add_stu", methods=["post"])
+@auth_user("admin")
 def add_stu():
-    if not authenticate_request(request, session):
-        CgiLog.warning("cgi:authenticate_request failed")
-        return gen_result_str(RESULT_SESS_EXPIRE, {})
-
     req_params = extract_req_params(request.data,
                                     {"stu_id": str,
                                      "stu_name": str,
