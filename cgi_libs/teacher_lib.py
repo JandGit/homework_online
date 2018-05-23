@@ -363,7 +363,8 @@ def get_stu_homeworks_detail(stu_id, hw_id):
                         ques_type == "judge"):
                     stu_answer_json_obj = stu_answer_json_obj["choices"]
                 elif ques_type == "free_resp":
-                    stu_answer_json_obj = stu_answer_json_obj["answer"]
+                    stu_answer_json_obj = stu_answer_json_obj["answer"].\
+                        replace("\\\"", "\"")
                 else:
                     stu_answer_json_obj = []
             except Exception:

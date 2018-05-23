@@ -60,7 +60,8 @@ def _get_free_resp_ques_data(item_data):
         ques_extra_data, stu_answer) = item_data
     try:
         # 这里使用strict=False，防止存在回车符导致json解析失败
-        stu_answer = json.loads(stu_answer, strict=False)["answer"]
+        stu_answer = json.loads(
+            stu_answer, strict=False)["answer"].replace("\\\"", "\"")
     except Exception as err:
         CgiLog.warning("stu_answer has wrong format:%s\n err:%s" %
                        (stu_answer, str(err)))
@@ -95,6 +96,7 @@ def _get_choice_ques_data(item_data):
     return {"ques_id": ques_id, "ques_content": ques_content,
             "ques_type": ques_type, "status": status,
             "answer": extra_json_of_ques["choices"],
+            "right_answer": extra_json_of_ques["answer"],
             "stu_answer": stu_answer}
 
 
@@ -124,8 +126,9 @@ def commit_homework(stu_id, hw_id, finished_ques):
             answer = json.dumps({"choices": one_ques["stu_answer"]},
                                 ensure_ascii=False)
         else:
-            answer = json.dumps({"answer": one_ques["stu_answer"]},
-                                ensure_ascii=False)
+            answer = json.dumps({
+                "answer": one_ques["stu_answer"].replace("\"", "\\\"")},
+                ensure_ascii=False)
         ques_id = one_ques["ques_id"]
         sql = ("UPDATE stu_question SET date_finished=NOW(), "
                "status='committed', answer='%s' WHERE stu_id='%s' "
